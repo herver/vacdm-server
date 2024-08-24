@@ -1,9 +1,12 @@
-import { FrontendSettings, PluginSettings } from '@shared/interfaces/config.interface';
+import {
+  FrontendSettings,
+  PluginSettings,
+} from "@shared/interfaces/config.interface";
 
 interface vacdmConfig {
   mongoUri: string;
   port: number;
-  role: 'API' | 'WORKER';
+  role: "API" | "WORKER";
 
   pluginSettings: PluginSettings;
   frontendSettings: FrontendSettings;
@@ -17,6 +20,7 @@ interface vacdmConfig {
   eventUrl: string;
   eventPrio: number;
   eventPullInterval: number;
+  eventSystemType: string;
 
   clientId: string;
   clientSecret: string;
@@ -30,22 +34,22 @@ interface vacdmConfig {
 
 export default function config(): vacdmConfig {
   const options = {
-    serverName: process.env.SERVER_NAME ?? 'vACDM Server',
-    vatsimAuthUrl: process.env.VATSIM_AUTH_URL ?? 'https://auth.vatsim.net',
-    vatsimAuthClientId: process.env.CLIENT_ID ?? '',
-    vaccLogoUrl: process.env.VACC_LOGO_URL ?? '',
-    vaccImprintUrl: process.env.VACC_IMPRINT_URL ?? '',
+    serverName: process.env.SERVER_NAME ?? "vACDM Server",
+    vatsimAuthUrl: process.env.VATSIM_AUTH_URL ?? "https://auth.vatsim.net",
+    vatsimAuthClientId: process.env.CLIENT_ID ?? "",
+    vaccLogoUrl: process.env.VACC_LOGO_URL ?? "",
+    vaccImprintUrl: process.env.VACC_IMPRINT_URL ?? "",
   };
 
   return {
-    mongoUri: process.env.MONGO_URI || '',
+    mongoUri: process.env.MONGO_URI || "",
     port: Number(process.env.PORT) || 3000,
-    role: process.env.ROLE != 'WORKER' ? 'API' : 'WORKER',
+    role: process.env.ROLE != "WORKER" ? "API" : "WORKER",
 
     pluginSettings: {
       serverName: options.serverName,
-      allowSimSession: process.env.ALLOW_SIM == 'true' ?? false,
-      allowObsMaster: process.env.ALLOW_OBS_MASTER == 'true' ?? false,
+      allowSimSession: process.env.ALLOW_SIM == "true" ?? false,
+      allowObsMaster: process.env.ALLOW_OBS_MASTER == "true" ?? false,
     },
 
     frontendSettings: {
@@ -59,21 +63,24 @@ export default function config(): vacdmConfig {
     timeframes: {
       timeSinceLastSeen: Number(process.env.TIME_LAST_SEEN || 5) * 60 * 1000,
       timeSinceInactive: Number(process.env.TIME_INACTIVE || 5) * 60 * 1000,
-      timeSinceLastLogin: Number(process.env.TIME_LAST_LOGIN || 48) * 60 * 60 * 1000,
+      timeSinceLastLogin:
+        Number(process.env.TIME_LAST_LOGIN || 48) * 60 * 60 * 1000,
     },
 
-    eventUrl: process.env.EVENT_URL || 'https://slots.vatsim-germany.org/api/events/',
+    eventUrl:
+      process.env.EVENT_URL || "https://slots.vatsim-germany.org/api/events/",
     eventPrio: Number(process.env.EVENT_PRIO) || 5,
     eventPullInterval: Number(process.env.EVENT_PULL_INTERVAL || 5),
+    eventSystemType: process.env.EVENT_SYSTEM_TYPE || "bmac",
 
     vatsimAuthUrl: options.vatsimAuthUrl,
     clientId: options.vatsimAuthClientId,
-    clientSecret: process.env.CLIENT_SECRET ?? '',
-    vaccAuthType: process.env.VACC_AUTH_TYPE ?? '',
-    vaccAuthUrl: process.env.VACC_AUTH_URL ?? '',
-    vaccAuthToken: process.env.VACC_AUTH_TOKEN ?? '',
+    clientSecret: process.env.CLIENT_SECRET ?? "",
+    vaccAuthType: process.env.VACC_AUTH_TYPE ?? "",
+    vaccAuthUrl: process.env.VACC_AUTH_URL ?? "",
+    vaccAuthToken: process.env.VACC_AUTH_TOKEN ?? "",
 
-    publicUrl: process.env.PUBLIC_URL ?? '',
-    jwtSecret: process.env.JWT_SECRET ?? 'super-secret-secret!',
+    publicUrl: process.env.PUBLIC_URL ?? "",
+    jwtSecret: process.env.JWT_SECRET ?? "super-secret-secret!",
   };
 }

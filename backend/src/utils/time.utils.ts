@@ -13,9 +13,18 @@ export function addMinutes(date: Date, minutes: number): Date {
   return dateNew;
 }
 
+export function subMinutes(date: Date, minutes: number): Date {
+  let dateNew = new Date(date);
+
+  dateNew.setUTCMinutes(date.getUTCMinutes() - minutes);
+
+  return dateNew;
+}
+
 export default {
   emptyDate,
   emptyDateValue,
   isTimeEmpty,
   addMinutes,
+  subMinutes,
 };

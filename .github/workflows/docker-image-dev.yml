@@ -7,6 +7,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE20: true
 
 jobs:
   build-and-push-image:
@@ -28,5 +29,5 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          docker build --pull -t ${{ env.REGISTRY }}/vacdm/vacdm:dev .
-          docker push ${{ env.REGISTRY }}/vacdm/vacdm:dev
+          docker build --pull -t ${{ env.REGISTRY }}/herver/vacdm:dev .
+          docker push ${{ env.REGISTRY }}/herver/vacdm:dev

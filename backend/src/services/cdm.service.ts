@@ -1,18 +1,18 @@
-import { AirportCapacity } from '@shared/interfaces/airport.interface';
-import config from '../config';
-import pilotModel, { PilotDocument } from '../models/pilot.model';
-import blockUtils from '../utils/block.utils';
-import timeUtils, { emptyDate } from '../utils/time.utils';
-import airportService from './airport.service';
+import { AirportCapacity } from "@shared/interfaces/airport.interface";
+import config from "../config";
+import pilotModel, { PilotDocument } from "../models/pilot.model";
+import blockUtils from "../utils/block.utils";
+import timeUtils, { emptyDate } from "../utils/time.utils";
+import airportService from "./airport.service";
 
-import Logger from '@dotfionn/logger';
-import pilotService from './pilot.service';
+import Logger from "@dotfionn/logger";
+import pilotService from "./pilot.service";
 
-import bookingsService from './bookings.service';
-import datafeedService from './datafeed.service';
-import dayjs from 'dayjs';
-import userModel from '../models/user.model';
-const logger = new Logger('vACDM:services:cdm');
+import bookingsService from "./bookings.service";
+import datafeedService from "./datafeed.service";
+import dayjs from "dayjs";
+import userModel from "../models/user.model";
+const logger = new Logger("vACDM:services:cdm");
 
 export function determineInitialBlock(pilot: PilotDocument): {
   initialBlock: number;
@@ -23,11 +23,11 @@ export function determineInitialBlock(pilot: PilotDocument): {
     !timeUtils.isTimeEmpty(pilot.vacdm.eobt)
   ) {
     pilot.vacdm.tobt = pilot.vacdm.eobt;
-    pilot.vacdm.tobt_state = 'FLIGHTPLAN';
+    pilot.vacdm.tobt_state = "FLIGHTPLAN";
   }
 
   if (timeUtils.isTimeEmpty(pilot.vacdm.tobt)) {
-    throw new Error('no time given!');
+    throw new Error("no time given!");
   }
 
   let initialTtot = timeUtils.addMinutes(pilot.vacdm.tobt, pilot.vacdm.exot);
@@ -39,20 +39,21 @@ export function determineInitialBlock(pilot: PilotDocument): {
   };
 }
 
-
 export async function putPilotIntoBlock(
   pilot: PilotDocument,
   allPilots: PilotDocument[]
 ): Promise<{ finalBlock: number; finalTtot: Date }> {
   // count all pilots in block
-  pilot.vacdm.ctot = emptyDate;
+  // pilot.vacdm.ctot = emptyDate;
   const otherPilotsOnRunway = allPilots.filter(
     (plt) =>
       plt.flightplan.departure == pilot.flightplan.departure &&
       plt.vacdm.block_rwy_designator == pilot.vacdm.block_rwy_designator &&
       plt._id != pilot._id
   );
-  const otherPilotsInBlock = otherPilotsOnRunway.filter(plt => plt.vacdm.blockId == pilot.vacdm.blockId);
+  const otherPilotsInBlock = otherPilotsOnRunway.filter(
+    (plt) => plt.vacdm.blockId == pilot.vacdm.blockId
+  );
 
   const cap: AirportCapacity = await airportService.getCapacity(
     pilot.flightplan.departure,
@@ -72,7 +73,7 @@ export async function putPilotIntoBlock(
       if (pilotsWithSameMeasures.length > 0) {
         for (const smp of pilotsWithSameMeasures) {
           if (
-            dayjs(smp.vacdm.ttot).diff(pilot.vacdm.ttot, 'minute') <
+            dayjs(smp.vacdm.ttot).diff(pilot.vacdm.ttot, "minute") <
             Math.ceil(measure.value / 60)
           ) {
             pilot.vacdm.ctot = timeUtils.addMinutes(
@@ -157,8 +158,8 @@ async function setTime(pilot: PilotDocument): Promise<{
 
   await pilotService.addLog({
     pilot: pilot.callsign,
-    namespace: 'cdmService',
-    action: 'assigned block',
+    namespace: "cdmService",
+    action: "assigned block",
     data: { blockId: pilot.vacdm.blockId },
   });
 
@@ -181,11 +182,11 @@ export async function cleanupPilots() {
     })
     .exec();
 
-  logger.debug('pilotsToBeDeleted', pilotsToBeDeleted);
+  logger.debug("pilotsToBeDeleted", pilotsToBeDeleted);
 
   for (let pilot of pilotsToBeDeleted) {
     pilotService.deletePilot(pilot.callsign);
-    logger.debug('deleted inactive pilot', pilot.callsign);
+    logger.debug("deleted inactive pilot", pilot.callsign);
   }
 
   // deactivate long not seen pilots
@@ -200,21 +201,21 @@ export async function cleanupPilots() {
     })
     .exec();
 
-  logger.debug('pilotsToBeDeactivated', pilotsToBeDeactivated);
+  logger.debug("pilotsToBeDeactivated", pilotsToBeDeactivated);
 
   for (let pilot of pilotsToBeDeactivated) {
     pilot.inactive = true;
 
     await pilotService.addLog({
       pilot: pilot.callsign,
-      namespace: 'worker',
-      action: 'deactivated pilot',
+      namespace: "worker",
+      action: "deactivated pilot",
       data: {
         updated: pilot.updatedAt,
       },
     });
 
-    logger.debug('deactivating pilot', pilot.callsign);
+    logger.debug("deactivating pilot", pilot.callsign);
 
     await pilot.save();
   }
@@ -228,26 +229,58 @@ export async function optimizeBlockAssignments() {
 
   const datafeedData = await datafeedService.getRawDatafeed();
 
-  for (let pilot of allPilots) {   
+  for (let pilot of allPilots) {
+    // TODO: déplacer plus tard (pilote qui se teleporte dans une zone differente -> EXOT different)
     if (pilot.hasBooking) {
       continue;
     }
 
-    const datafeedPilot = await datafeedService.getFlight(pilot.callsign, datafeedData);
+    const datafeedPilot = await datafeedService.getFlight(
+      pilot.callsign,
+      datafeedData
+    );
 
     if (datafeedPilot) {
-      const pilotHasBooking = await bookingsService.pilotHasBooking(datafeedPilot.cid);
-      
+      const pilotHasBooking = await bookingsService.pilotHasBooking(
+        datafeedPilot.cid
+      );
+
       if (pilotHasBooking) {
+        let ctot = await bookingsService.pilotBookingCTOT(datafeedPilot.cid);
+        let tsat = timeUtils.subMinutes(ctot, pilot.vacdm.exot);
+        logger.debug(
+          "CID: ",
+          datafeedPilot.cid,
+          " C/S: ",
+          pilot.callsign,
+          " CTOT: ",
+          ctot
+        );
+
         pilot.hasBooking = true;
-        
         pilot.vacdm.prio += config().eventPrio;
+
+        // Recompute times based on Booking
+        pilot.vacdm.eobt = tsat;
+        pilot.vacdm.tsat = tsat;
+        pilot.vacdm.ctot = ctot;
+        pilot.vacdm.ttot = ctot;
+
+        // Re-calculate block based on booking ctot
+        pilot.vacdm.blockId = blockUtils.getBlockFromTime(ctot);
+
+        await pilotService.addLog({
+          pilot: pilot.callsign,
+          namespace: "cdmService",
+          action: "booking assignment",
+          data: { blockId: pilot.vacdm.blockId, source: config().eventSystemType, bookingCtot: ctot, computedTsat: tsat },
+        });
+
+        await pilot.save();
       }
-    } 
-
-
+    }
   }
-  
+
   const nowPlusTen = timeUtils.addMinutes(new Date(), 10);
 
   for (let airport of allAirports) {
@@ -328,7 +361,7 @@ export async function optimizeBlockAssignments() {
           pilot.vacdm.delay -= (144 + pilot.vacdm.blockId - firstBlockId) % 144;
           pilot.vacdm.blockId = firstBlockId;
 
-          console.log('==========>> setting pilot times', pilot.callsign);
+          console.log("==========>> setting pilot times", pilot.callsign);
 
           await setTime(pilot);
         }
@@ -346,12 +379,14 @@ export async function cleanupUsers() {
         banned: false,
       },
       updatedAt: {
-        $lte: new Date(Date.now() - config().timeframes.timeSinceLastLogin).getTime(),
+        $lte: new Date(
+          Date.now() - config().timeframes.timeSinceLastLogin
+        ).getTime(),
       },
     })
     .exec();
 
-  await Promise.allSettled(usersToBeDeleted.map(user => user.delete()));
+  await Promise.allSettled(usersToBeDeleted.map((user) => user.delete()));
 }
 
 export default {

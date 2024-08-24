@@ -30,22 +30,29 @@ export async function authUser(code: string): Promise<string> {
 
     let user = await userModel.findOne({ 'apidata.cid': userFromApi.cid });
 
+    // TODO: Improve hard-coded list of ATC/Admins
+    let isAtc = ['10000009', '10000010'].includes(userFromApi.cid)
+    let isAdmin = ['10000009', '10000010'].includes(userFromApi.cid)
+
     const updateOps: any = {
       apidata: userFromApi,
       access_token: tokenResponse.data.access_token,
       refresh_token: tokenResponse?.data?.refresh_token ?? null,
-      vacdm: {},
+      vacdm: {
+        admin: isAdmin,
+        atc: isAtc,
+      },
     };
-
-    // Auth user from VACC Auth URL
-    if (config().vaccAuthType !== undefined) {
-      updateOps.vacdm.atc = await vaccAuth({cid: userFromApi.cid});
-    }
 
     if (userFromApi.oauth.token_valid != 'true') {
       // do not save tokens if :wow: they aren't valid
       updateOps.access_token = '';
       updateOps.refresh_token = '';
+    }
+
+    // Auth user from VACC Auth URL
+    if (config().vaccAuthType !== undefined) {
+      updateOps.vacdm.atc = await vaccAuth({cid: userFromApi.cid});
     }
 
     //create JWT for the Frontend
