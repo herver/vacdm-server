@@ -23,6 +23,7 @@ import ecfmpService from './services/ecfmp.service';
   }
 
   await mongoose.connect(config().mongoUri);
+  mongoose.set('bufferCommands', false);
 
   if (config().role == 'WORKER') {
     logger.info('starting worker...');

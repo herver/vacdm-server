@@ -225,11 +225,12 @@ export async function optimizeBlockAssignments() {
   let currentBlockId = blockUtils.getBlockFromTime(new Date());
   let allAirports = await airportService.getAllAirports();
 
-  let allPilots = await pilotService.getAllPilots();
+  let allPilots = await pilotService.getAllPilots({ inactive: { $eq: false } });
 
   const datafeedData = await datafeedService.getRawDatafeed();
 
   for (let pilot of allPilots) {
+    logger.debug("Optimizing: ", pilot.callsign);
     // logger.debug("Is accurate: ", (pilot.vacdm.tsat.getTime() === timeUtils.subMinutes(pilot.vacdm.ctot, pilot.vacdm.exot).getTime()));
     if (
       pilot.hasBooking && // times already computed
