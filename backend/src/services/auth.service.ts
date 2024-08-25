@@ -51,7 +51,8 @@ export async function authUser(code: string): Promise<string> {
     }
 
     // Auth user from VACC Auth URL
-    if (config().vaccAuthType !== undefined) {
+    if (config().vaccAuthType !== "") {
+      console.log("Entering vaccAuthType");
       updateOps.vacdm.atc = await vaccAuth({cid: userFromApi.cid});
     }
 

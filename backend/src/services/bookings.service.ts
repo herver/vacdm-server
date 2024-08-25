@@ -10,6 +10,7 @@ let relevantBookings: any[] | null = null;
 
 export async function getAllBookings() {
   const duration = dayjs().diff(dayjs(lastPull), "minute");
+
   try {
     if (
       relevantBookings === null ||
@@ -18,19 +19,20 @@ export async function getAllBookings() {
     ) {
       switch (config().eventSystemType) {
         case "vatcan":
-          logger.debug("Get latest VatCAN Bookings");
+          logger.debug("Fetching VatCAN Bookings");
           const bookings = await axios.get(config().eventUrl);
 
           relevantBookings = [];
           for (let booking of bookings.data) {
             relevantBookings.push(booking);
           }
-          // logger.debug(relevantBookings);
+          lastPull = new Date();
+
           return relevantBookings;
           break;
 
         default:
-          logger.debug("Get latest BMAC Bookings");
+          logger.debug("Fetching BMAC Bookings");
           const events = await axios.get(config().eventUrl);
           const relevantEvents = events.data.data.filter(
             (e) =>
@@ -46,23 +48,24 @@ export async function getAllBookings() {
               relevantBookings.push(booking);
             }
           }
+          lastPull = new Date();
+
           return relevantBookings;
           break;
       }
+    } else {
+      // logger.debug("Returning cached bookings from: ", lastPull);
+      return relevantBookings;
     }
   } catch (error) {
     throw error;
   }
-
-  // We shouldn't be here
-  return [];
 }
 
 export async function pilotHasBooking(cid: number): Promise<boolean> {
   try {
     const bookings = await getAllBookings();
-    // logger.debug("pilotHasBooking: cid ->", cid);
-    // logger.debug("All bookings", bookings);
+
     switch (config().eventSystemType) {
       case "vatcan":
         return bookings.findIndex((b) => b.cid === cid) != -1;

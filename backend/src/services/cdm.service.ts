@@ -230,8 +230,12 @@ export async function optimizeBlockAssignments() {
   const datafeedData = await datafeedService.getRawDatafeed();
 
   for (let pilot of allPilots) {
-    // TODO: déplacer plus tard (pilote qui se teleporte dans une zone differente -> EXOT different)
-    if (pilot.hasBooking) {
+    // logger.debug("Is accurate: ", (pilot.vacdm.tsat.getTime() === timeUtils.subMinutes(pilot.vacdm.ctot, pilot.vacdm.exot).getTime()));
+    if (
+      pilot.hasBooking && // times already computed
+      pilot.vacdm.tsat.getTime() ===
+        timeUtils.subMinutes(pilot.vacdm.ctot, pilot.vacdm.exot).getTime() // TSAT is still valid
+    ) {
       continue;
     }
 
@@ -273,7 +277,12 @@ export async function optimizeBlockAssignments() {
           pilot: pilot.callsign,
           namespace: "cdmService",
           action: "booking assignment",
-          data: { blockId: pilot.vacdm.blockId, source: config().eventSystemType, bookingCtot: ctot, computedTsat: tsat },
+          data: {
+            blockId: pilot.vacdm.blockId,
+            source: config().eventSystemType,
+            bookingCtot: ctot,
+            computedTsat: tsat,
+          },
         });
 
         await pilot.save();
