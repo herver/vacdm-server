@@ -59,6 +59,7 @@ interface Pilot {
     value: number;
   }[];
   inactive: boolean;
+  disabledAt: Date;
 
   // mongoose fields
   createdAt: Date;

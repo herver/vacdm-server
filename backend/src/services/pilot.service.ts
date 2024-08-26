@@ -2,7 +2,7 @@ import Pilot, { PilotLog } from '@shared/interfaces/pilot.interface';
 import nestedobjectsUtils from '../utils/nestedobjects.utils';
 import pilotModel, { PilotDocument } from '../models/pilot.model';
 import airportService from './airport.service';
-import timeUtils from '../utils/time.utils';
+import timeUtils, { emptyDate, isTimeEmpty } from '../utils/time.utils';
 import cdmService from './cdm.service';
 import pilotLogModel, { PilotLogDocument } from '../models/pilotLog.model';
 import archiveModel, { ArchiveDocument } from '../models/archive.model';
@@ -186,7 +186,7 @@ async function calculations(pilot: PilotDocument): Promise<PilotDocument> {
   }
 
   // determine taxi zone
-  if (!pilot.inactive && !pilot.vacdm.manual_exot) {
+  if (!pilot.inactive && !pilot.vacdm.manual_exot && isTimeEmpty(pilot.vacdm.aobt)) {
     try {
       let exotBefore = Number(pilot.vacdm.exot);
       let taxizoneBefore = String(pilot.vacdm.taxizone);

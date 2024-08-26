@@ -189,10 +189,12 @@ export async function cleanupPilots() {
     logger.debug("deleted inactive pilot", pilot.callsign);
   }
 
-  // deactivate long not seen pilots
+  // deactivate long not seen pilots (and tobt_state==GUESS)
+  // do not overcompute slots with non confirmed times
   const pilotsToBeDeactivated = await pilotModel
     .find({
       inactive: { $not: { $eq: true } },
+      tobt_state: { $eq: "GUESS" },
       updatedAt: {
         $lt: new Date(
           Date.now() - config().timeframes.timeSinceLastSeen
@@ -219,6 +221,43 @@ export async function cleanupPilots() {
 
     await pilot.save();
   }
+
+  // Deactivation for CONFIRMED pilots and TOBT < now() + 5 minutes
+  const pilotsConfirmedToBeDeactivated = await pilotModel
+    .find({
+      inactive: { $not: { $eq: true } },
+      tobt_state: { $eq: "CONFIRMED" },
+      vacdm: {
+        tobt: {
+          $lt: new Date(
+            Date.now() - 5 // minutes
+          ).getTime(),
+        },
+      },
+    })
+    .exec();
+
+  logger.debug(
+    "pilotsConfirmedToBeDeactivated",
+    pilotsConfirmedToBeDeactivated
+  );
+
+  for (let pilot of pilotsConfirmedToBeDeactivated) {
+    pilot.inactive = true;
+
+    await pilotService.addLog({
+      pilot: pilot.callsign,
+      namespace: "worker",
+      action: "deactivated confirmed pilot",
+      data: {
+        updated: pilot.updatedAt,
+      },
+    });
+
+    logger.debug("deactivating confirmed pilot", pilot.callsign);
+
+    await pilot.save();
+  }
 }
 
 export async function optimizeBlockAssignments() {
@@ -231,7 +270,8 @@ export async function optimizeBlockAssignments() {
 
   for (let pilot of allPilots) {
     logger.debug("Optimizing: ", pilot.callsign);
-    // logger.debug("Is accurate: ", (pilot.vacdm.tsat.getTime() === timeUtils.subMinutes(pilot.vacdm.ctot, pilot.vacdm.exot).getTime()));
+
+    // We skip optimisation if conditions are met
     if (
       pilot.hasBooking && // times already computed
       pilot.vacdm.tsat.getTime() ===
@@ -250,7 +290,10 @@ export async function optimizeBlockAssignments() {
         datafeedPilot.cid
       );
 
-      if (pilotHasBooking) {
+      if (
+        pilotHasBooking &&
+        pilot.vacdm.aobt == emptyDate // safeguard to only update booking on blocks
+      ) {
         let ctot = await bookingsService.pilotBookingCTOT(datafeedPilot.cid);
         let tsat = timeUtils.subMinutes(ctot, pilot.vacdm.exot);
         logger.debug(

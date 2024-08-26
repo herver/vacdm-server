@@ -71,6 +71,7 @@ export const pilotSchema = new mongoose.Schema(
       value: { type: Number, default: -1}
     }],
     inactive: { type: Boolean, default: false },
+    disabledAt: {type: Date, default: timeUtils.emptyDate},
   },
   { timestamps: true }
 );
