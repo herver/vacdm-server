@@ -74,6 +74,9 @@ import ecfmpService from './services/ecfmp.service';
 
   const app = express();
 
+  // reverse proxy
+  app.set('trust proxy', 'uniquelocal');
+  
   app.use(bodyparser.json());
 
   app.use(cookieParser());
