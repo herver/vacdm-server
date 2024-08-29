@@ -170,6 +170,42 @@ async function setTime(pilot: PilotDocument): Promise<{
 }
 
 export async function cleanupPilots() {
+  // Reactivate inactivated pilots (where updatedBy > disabledAt)
+  const pilotsToBeEnabled = await pilotModel
+    .find({
+      inactive: true,
+      $expr: {
+        // $gt: ['$updatedAt', '$disabledAt' + 30s]
+        $gt: [
+          "$updatedAt",
+          {
+            $dateAdd: { startDate: "$disabledAt", unit: "second", amount: 15 },
+          },
+        ],
+      },
+    })
+    .exec();
+
+  logger.debug("pilotsToBeEnabled", pilotsToBeEnabled);
+
+  for (let pilot of pilotsToBeEnabled) {
+    pilot.inactive = false;
+    pilot.disabledAt = emptyDate;
+
+    await pilotService.addLog({
+      pilot: pilot.callsign,
+      namespace: "worker",
+      action: "re-enabled pilot",
+      data: {
+        updated: pilot.updatedAt,
+      },
+    });
+
+    logger.debug("re-enabling pilot", pilot.callsign);
+
+    await pilot.save();
+  }
+
   // delete long inactive pilots
   const pilotsToBeDeleted = await pilotModel
     .find({
@@ -207,6 +243,7 @@ export async function cleanupPilots() {
 
   for (let pilot of pilotsToBeDeactivated) {
     pilot.inactive = true;
+    pilot.disabledAt = new Date();
 
     await pilotService.addLog({
       pilot: pilot.callsign,
@@ -222,17 +259,18 @@ export async function cleanupPilots() {
     await pilot.save();
   }
 
-  // Deactivation for CONFIRMED pilots and TOBT < now() + 5 minutes
+  // Deactivation for CONFIRMED pilots and TOBT < now() + 5 minutes (and ASAT not emptyDate)
   const pilotsConfirmedToBeDeactivated = await pilotModel
     .find({
       inactive: { $not: { $eq: true } },
-      tobt_state: { $eq: "CONFIRMED" },
-      vacdm: {
-        tobt: {
-          $lt: new Date(
-            Date.now() - 5 // minutes
-          ).getTime(),
-        },
+      "vacdm.tobt_state": { $eq: "CONFIRMED" },
+      "vacdm.tobt": {
+        $lt: new Date(
+          Date.now() - 5 * 60 * 1000 // minutes
+        ).getTime(),
+      },
+      "vacdm.asat": {
+        $gt: emptyDate,
       },
     })
     .exec();
@@ -244,6 +282,7 @@ export async function cleanupPilots() {
 
   for (let pilot of pilotsConfirmedToBeDeactivated) {
     pilot.inactive = true;
+    pilot.disabledAt = new Date();
 
     await pilotService.addLog({
       pilot: pilot.callsign,
