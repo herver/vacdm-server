@@ -331,7 +331,7 @@ export async function optimizeBlockAssignments() {
 
       if (
         pilotHasBooking &&
-        pilot.vacdm.aobt == emptyDate // safeguard to only update booking on blocks
+        pilot.vacdm.aobt.getTime() == emptyDate.getTime() // safeguard to only update booking on blocks
       ) {
         let ctot = await bookingsService.pilotBookingCTOT(datafeedPilot.cid);
         let tsat = timeUtils.subMinutes(ctot, pilot.vacdm.exot);
