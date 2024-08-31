@@ -453,7 +453,7 @@ export async function optimizeBlockAssignments() {
           pilot.vacdm.delay -= (144 + pilot.vacdm.blockId - firstBlockId) % 144;
           pilot.vacdm.blockId = firstBlockId;
 
-          console.log("==========>> setting pilot times", pilot.callsign);
+          logger.info("==========>> setting pilot times", pilot.callsign);
 
           await setTime(pilot);
         }

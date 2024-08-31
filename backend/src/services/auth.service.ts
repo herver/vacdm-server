@@ -4,6 +4,9 @@ import jwt from 'jsonwebtoken';
 import nestedobjectsUtils from '../utils/nestedobjects.utils';
 import config from '../config';
 import { vaccAuth } from './vacc.service';
+import Logger from "@dotfionn/logger";
+
+const logger = new Logger("vACDM:services:auth");
 
 export async function authUser(code: string): Promise<string> {
   let body = {
@@ -26,7 +29,7 @@ export async function authUser(code: string): Promise<string> {
 
     const userFromApi = userResponse.data.data;
 
-    console.log(userFromApi);
+    logger.debug("UserFromAPI: ", userFromApi);
 
     let user = await userModel.findOne({ 'apidata.cid': userFromApi.cid });
 
@@ -52,7 +55,7 @@ export async function authUser(code: string): Promise<string> {
 
     // Auth user from VACC Auth URL
     if (config().vaccAuthType !== "") {
-      console.log("Entering vaccAuthType");
+      logger.debug("Entering vaccAuthType");
       updateOps.vacdm.atc = await vaccAuth({cid: userFromApi.cid});
     }
 
@@ -93,7 +96,7 @@ export async function getUserFromToken(token: string): Promise<UserDocument> {
     const tokendata = jwt.verify(token, config().jwtSecret, {});
 
     if (typeof tokendata == 'string') {
-      console.log('BIG WTF -', tokendata);
+      logger.error('BIG WTF -', tokendata);
 
       throw new Error('token returned string, wtf');
     }

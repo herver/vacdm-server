@@ -7,10 +7,11 @@ import ecfmpModel, { EcfmpMeasureDocument } from "../models/measure.model";
 import axios from "axios";
 import pilotService from "./pilot.service";
 import Pilot from "@shared/interfaces/pilot.interface";
-
 import pilotModel, { PilotDocument } from "../models/pilot.model";
+import Logger from "@dotfionn/logger";
 
 import dayjs from "dayjs";
+const logger = new Logger("vACDM:services:ecfmp");
 
 export async function getAllMeasures() {
   try {
@@ -34,7 +35,7 @@ export async function getEcfmpDetails() {
     );
 
     measures.forEach(async (measure: EcfmpMeasure) => {
-      console.log(measure.starttime);
+      logger.info("Measure starttime: ", measure.starttime);
 
       const measureExists = await doesMeasureExist(measure.ident);
       if (measureExists) {
