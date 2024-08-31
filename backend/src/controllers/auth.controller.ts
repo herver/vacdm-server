@@ -1,9 +1,6 @@
 import { UserDocument } from "./../models/user.model";
-import config from "../config";
 import { NextFunction, Request, Response } from "express";
 import authService from "../services/auth.service";
-import { APIError } from "@shared/errors";
-import datafeedService from "../services/datafeed.service";
 
 export async function authUser(
   req: Request,
@@ -31,7 +28,7 @@ export async function authUser(
     }
 
     res.redirect("/vdgs/");
-    } catch (error) {
+  } catch (error) {
     if (error.message == "something went wrong with auth") {
       return next();
     }
