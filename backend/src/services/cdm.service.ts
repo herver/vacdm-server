@@ -264,13 +264,13 @@ export async function cleanupPilots() {
     .find({
       inactive: { $not: { $eq: true } },
       "vacdm.tobt_state": { $eq: "CONFIRMED" },
-      "vacdm.tobt": {
+      "vacdm.tsat": {
         $lt: new Date(
           Date.now() - 5 * 60 * 1000 // minutes
         ).getTime(),
       },
       "vacdm.asat": {
-        $gt: emptyDate,
+        $eq: emptyDate,
       },
     })
     .exec();
