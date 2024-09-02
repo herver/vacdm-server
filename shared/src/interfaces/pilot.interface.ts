@@ -6,8 +6,6 @@ interface Pilot {
     lon: number;
   };
 
-  trueAltitude: number;
-
   vacdm: {
     eobt: Date;
     tobt: Date;

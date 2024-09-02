@@ -13,8 +13,6 @@ export const pilotSchema = new mongoose.Schema(
       lon: Number,
     },
 
-    trueAltitude: Number,
-
     vacdm: {
       eobt: { type: Date, default: timeUtils.emptyDate },
       tobt: { type: Date, default: timeUtils.emptyDate },
