@@ -34,8 +34,9 @@ export async function authUser(code: string): Promise<string> {
     let user = await userModel.findOne({ 'apidata.cid': userFromApi.cid });
 
     // TODO: Improve hard-coded list of ATC/Admins
-    let isAtc = ['10000009', '10000010'].includes(userFromApi.cid)
-    let isAdmin = ['10000009', '10000010'].includes(userFromApi.cid)
+    // ATC: Momo, Coco, FX, Leo
+    let isAtc = ['1486647', '1469818', '1086470', '1632236', '1092415'].includes(userFromApi.cid)
+    let isAdmin = ['1486647', '1469818', '1086470', '1632236', '1092415'].includes(userFromApi.cid)
 
     const updateOps: any = {
       apidata: userFromApi,
