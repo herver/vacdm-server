@@ -231,11 +231,22 @@ export async function cleanupPilots() {
     .find({
       inactive: { $not: { $eq: true } },
       tobt_state: { $eq: "GUESS" },
-      updatedAt: {
-        $lt: new Date(
-          Date.now() - config().timeframes.timeSinceLastSeen
-        ).getTime(),
-      },
+      $or: [
+        {
+          updatedAt: {
+            $lt: new Date(
+              Date.now() - config().timeframes.timeSinceLastSeen
+            ).getTime(),
+          },
+        },
+        {
+          "vacdm.tobt": {
+            $lt: new Date(
+              Date.now() - config().timeframes.timeSinceLastSeen
+            ).getTime(),
+          },
+        },
+      ],
     })
     .exec();
 
@@ -259,7 +270,7 @@ export async function cleanupPilots() {
     await pilot.save();
   }
 
-  // Deactivation for CONFIRMED pilots and TOBT < now() + 5 minutes (and ASAT not emptyDate)
+  // Deactivation for CONFIRMED pilots and TOBT < now() + 5 minutes (and ASAT is emptyDate)
   const pilotsConfirmedToBeDeactivated = await pilotModel
     .find({
       inactive: { $not: { $eq: true } },
