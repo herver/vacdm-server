@@ -1,29 +1,32 @@
-import axios from 'axios';
-import userModel, { UserDocument } from '../models/user.model';
-import jwt from 'jsonwebtoken';
-import nestedobjectsUtils from '../utils/nestedobjects.utils';
-import config from '../config';
-import { vaccAuth } from './vacc.service';
+import axios from "axios";
+import userModel, { UserDocument } from "../models/user.model";
+import jwt from "jsonwebtoken";
+import nestedobjectsUtils from "../utils/nestedobjects.utils";
+import config from "../config";
+import { vaccAuth } from "./vacc.service";
 import Logger from "@dotfionn/logger";
 
 const logger = new Logger("vACDM:services:auth");
 
 export async function authUser(code: string): Promise<string> {
   let body = {
-    grant_type: 'authorization_code',
+    grant_type: "authorization_code",
     client_id: config().clientId,
     client_secret: config().clientSecret,
-    redirect_uri: config().publicUrl + '/api/v1/auth/login',
+    redirect_uri: config().publicUrl + "/api/v1/auth/login",
     code: code,
   };
 
   try {
-    const tokenResponse = await axios.post(config().vatsimAuthUrl + '/oauth/token', body);
+    const tokenResponse = await axios.post(
+      config().vatsimAuthUrl + "/oauth/token",
+      body
+    );
 
-    const userResponse = await axios.get(config().vatsimAuthUrl + '/api/user', {
+    const userResponse = await axios.get(config().vatsimAuthUrl + "/api/user", {
       headers: {
-        Authorization: 'Bearer ' + tokenResponse.data.access_token,
-        Accept: 'application/json',
+        Authorization: "Bearer " + tokenResponse.data.access_token,
+        Accept: "application/json",
       },
     });
 
@@ -31,12 +34,26 @@ export async function authUser(code: string): Promise<string> {
 
     logger.debug("UserFromAPI: ", userFromApi);
 
-    let user = await userModel.findOne({ 'apidata.cid': userFromApi.cid });
+    let user = await userModel.findOne({ "apidata.cid": userFromApi.cid });
 
     // TODO: Improve hard-coded list of ATC/Admins
-    // ATC: Momo, Coco, FX, Leo
-    let isAtc = ['1486647', '1469818', '1086470', '1632236', '1092415'].includes(userFromApi.cid)
-    let isAdmin = ['1486647', '1469818', '1086470', '1632236', '1092415'].includes(userFromApi.cid)
+    let isAtc = [
+      "1486647", // Momo
+      "1469818", // Coco
+      "1086470", // FX
+      "1632236", // Leo
+      "1092415", // Hervé
+      "1570276", // Goulven
+      "1651919", // Luca
+      "1601111", // Pierre B.
+    ].includes(userFromApi.cid);
+    let isAdmin = [
+      "1486647", // Momo
+      "1469818", // Coco
+      "1086470", // FX
+      "1632236", // Leo
+      "1092415", // Hervé
+    ].includes(userFromApi.cid);
 
     const updateOps: any = {
       apidata: userFromApi,
@@ -48,16 +65,16 @@ export async function authUser(code: string): Promise<string> {
       },
     };
 
-    if (userFromApi.oauth.token_valid != 'true') {
+    if (userFromApi.oauth.token_valid != "true") {
       // do not save tokens if :wow: they aren't valid
-      updateOps.access_token = '';
-      updateOps.refresh_token = '';
+      updateOps.access_token = "";
+      updateOps.refresh_token = "";
     }
 
     // Auth user from VACC Auth URL
     if (config().vaccAuthType !== "") {
       logger.debug("Entering vaccAuthType");
-      updateOps.vacdm.atc = await vaccAuth({cid: userFromApi.cid});
+      updateOps.vacdm.atc = await vaccAuth({ cid: userFromApi.cid });
     }
 
     //create JWT for the Frontend
@@ -67,7 +84,7 @@ export async function authUser(code: string): Promise<string> {
       },
       config().jwtSecret,
       {
-        expiresIn: '1h',
+        expiresIn: "1h",
       }
     );
 
@@ -96,20 +113,20 @@ export async function getUserFromToken(token: string): Promise<UserDocument> {
   try {
     const tokendata = jwt.verify(token, config().jwtSecret, {});
 
-    if (typeof tokendata == 'string') {
-      logger.error('BIG WTF -', tokendata);
+    if (typeof tokendata == "string") {
+      logger.error("BIG WTF -", tokendata);
 
-      throw new Error('token returned string, wtf');
+      throw new Error("token returned string, wtf");
     }
 
     const user = await userModel
       .findOne({
-        'apidata.cid': tokendata.cid,
+        "apidata.cid": tokendata.cid,
       })
       .exec();
 
     if (!user) {
-      throw new Error('no user with that CID found in database');
+      throw new Error("no user with that CID found in database");
     }
 
     return user;
