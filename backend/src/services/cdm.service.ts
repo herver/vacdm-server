@@ -231,22 +231,11 @@ export async function cleanupPilots() {
     .find({
       inactive: { $not: { $eq: true } },
       tobt_state: { $eq: "GUESS" },
-      $or: [
-        {
-          updatedAt: {
-            $lt: new Date(
-              Date.now() - config().timeframes.timeSinceLastSeen
-            ).getTime(),
-          },
-        },
-        {
-          "vacdm.tobt": {
-            $lt: new Date(
-              Date.now() - config().timeframes.timeSinceLastSeen
-            ).getTime(),
-          },
-        },
-      ],
+      updatedAt: {
+        $lt: new Date(
+          Date.now() - config().timeframes.timeSinceLastSeen
+        ).getTime(),
+      },
     })
     .exec();
 
