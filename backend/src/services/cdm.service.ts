@@ -210,7 +210,7 @@ export async function cleanupPilots() {
   const pilotsToBeDeleted = await pilotModel
     .find({
       inactive: true,
-      updatedAt: {
+      disabledAt: {
         $lte: new Date(
           Date.now() - config().timeframes.timeSinceInactive
         ).getTime(),
