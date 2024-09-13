@@ -225,17 +225,28 @@ export async function cleanupPilots() {
     logger.debug("deleted inactive pilot", pilot.callsign);
   }
 
-  // deactivate long not seen pilots (and tobt_state==GUESS)
+  // deactivate long not seen pilots (tobt_state==GUESS AND ((updatedAt < now - last seen) OR (tsat < now - 5))
   // do not overcompute slots with non confirmed times
   const pilotsToBeDeactivated = await pilotModel
     .find({
       inactive: { $not: { $eq: true } },
       tobt_state: { $eq: "GUESS" },
-      updatedAt: {
-        $lt: new Date(
-          Date.now() - config().timeframes.timeSinceLastSeen
-        ).getTime(),
-      },
+      $or: [
+        {
+          updatedAt: {
+            $lt: new Date(
+              Date.now() - config().timeframes.timeSinceLastSeen
+            ).getTime(),
+          },
+        },
+        {
+          "vacdm.tsat": {
+            $lt: new Date(
+              Date.now() - 5 * 60 * 1000 // minutes
+            ).getTime(),
+          },
+        },
+      ],
     })
     .exec();
 
