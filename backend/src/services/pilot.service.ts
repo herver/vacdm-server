@@ -104,6 +104,11 @@ export async function updatePilot(
       changesOps['vacdm.tsat'] = timeUtils.emptyDate;
     }
 
+    // Reject "too close" TOBT update (TOBT + 5)
+    if (new Date(changesOps['vacdm.tobt']) <= timeUtils.addMinutes(new Date(), 5)) {
+      throw new Error('TOBT too close to current time');
+    }
+
     if (changes.vacdm?.tobt_state) {
       switch (changes.vacdm?.tobt_state) {
         case 'FLIGHTPLAN': {
