@@ -35,7 +35,7 @@ import ecfmpService from './services/ecfmp.service';
       } catch (error) {
         logger.error('error occurred when cleaning up pilots', error);
       }
-    }, 10000);
+    }, 30000);
 
     setInterval(async () => {
       logger.debug('running ECFMP');
@@ -58,7 +58,7 @@ import ecfmpService from './services/ecfmp.service';
     console.log(6 * 60 * 60 * 1000);
 
     while (true) {
-      await (() => new Promise((res, rej) => setTimeout(res, 10000)))();
+      await (() => new Promise((res, rej) => setTimeout(res, 5000)))();
 
       logger.debug('running optimization');
       try {
