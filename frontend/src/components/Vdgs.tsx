@@ -189,6 +189,7 @@ const Vdgs = () => {
                 disabled={!pilot?.callsign  || pilot?.callsign === "" ? true : false}
               ></Button>
             </div>
+            <p><a href="https://vats.im/fr-cdm">CDM Briefing for pilots</a></p>
             <p><b>Info:</b> Your TOBT (Target Off-Block Time) is the time you are fully ready for pushback.
               The initial TOBT you see here is the one extracted from your fight plan on VATSIM.
               Once you "confirm" or "update" your TOBT in the field above, ATC is able to better plan a departure sequence.
