@@ -23,6 +23,14 @@ function Navbar(props: any) {
       permission: (user) => user && !user.vacdm.banned && user.vacdm.atc,
     },
     {
+      label: 'Flow Management',
+      icon: 'pi pi-fw pi-user',
+      command: () => {
+        navigate('/flow-management');
+      },
+      permission: (user) => user && !user.vacdm.banned && user.vacdm.atc,
+    },
+    {
       label: 'Airports',
       icon: 'pi pi-fw pi-pencil',
       command: () => {
@@ -31,12 +39,12 @@ function Navbar(props: any) {
       permission: (user) => user && !user.vacdm.banned && user.vacdm.admin,
     },
     {
-      label: 'Flow Management',
-      icon: 'pi pi-fw pi-user',
+      label: 'Users',
+      icon: 'pi pi-fw pi-users',
       command: () => {
-        navigate('/flow-management');
+        navigate('/users');
       },
-      permission: (user) => user && !user.vacdm.banned && user.vacdm.atc,
+      permission: (user) => user && !user.vacdm.banned && user.vacdm.admin,
     },
     {
       label: 'VDGS',

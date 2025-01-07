@@ -37,32 +37,34 @@ export async function authUser(code: string): Promise<string> {
     let user = await userModel.findOne({ "apidata.cid": userFromApi.cid });
 
     // TODO: Improve hard-coded list of ATC/Admins
-    let isAtc = [
-      "1486647", // Momo
-      "1469818", // Coco
-      "1086470", // FX
-      "1632236", // Leo
-      "1092415", // Hervé
-      "1570276", // Goulven
-      "1651919", // Luca
-      "1601111", // Pierre B.
-    ].includes(userFromApi.cid);
-    let isAdmin = [
-      "1486647", // Momo
-      "1469818", // Coco
-      "1086470", // FX
-      "1632236", // Leo
-      "1092415", // Hervé
-    ].includes(userFromApi.cid);
+    // let isAtc = [
+    //   "10000010", // Sandbox
+    //   "1486647", // Momo
+    //   "1469818", // Coco
+    //   "1086470", // FX
+    //   "1632236", // Leo
+    //   "1092415", // Hervé
+    //   "1570276", // Goulven
+    //   "1651919", // Luca
+    //   "1601111", // Pierre B.
+    // ].includes(userFromApi.cid);
+    // let isAdmin = [
+    //   "10000010", // Sandbox
+    //   "1486647", // Momo
+    //   "1469818", // Coco
+    //   "1086470", // FX
+    //   "1632236", // Leo
+    //   "1092415", // Hervé
+    // ].includes(userFromApi.cid);
 
     const updateOps: any = {
       apidata: userFromApi,
       access_token: tokenResponse.data.access_token,
       refresh_token: tokenResponse?.data?.refresh_token ?? null,
-      vacdm: {
-        admin: isAdmin,
-        atc: isAtc,
-      },
+      // vacdm: {
+      //   admin: isAdmin,
+      //   atc: isAtc,
+      // },
     };
 
     if (userFromApi.oauth.token_valid != "true") {

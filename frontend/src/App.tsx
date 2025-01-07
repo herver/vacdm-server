@@ -21,6 +21,7 @@ import AirportDetails from "components/AirportDetails";
 import AirportDetailsEditor from "components/AirportDetailsEditor";
 import DepartureBlocks from "components/DepartureBlocks";
 import Footer from "components/Footer";
+import UsersTable from "components/UsersTable";
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
             <Suspense fallback={<Loading />}>
               <Routes>
               <Route path="/atc" element={<PilotsTable />} />
+                <Route path="/users" element={<UsersTable />} />
                 <Route path="/airports" element={<AirportsTable />} />
                 <Route path="/airports/:icao" element={<AirportDetails />} />
                 <Route

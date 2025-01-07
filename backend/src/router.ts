@@ -4,6 +4,7 @@ import { NextFunction, Request, Response, Router } from 'express';
 import pilotController from './controllers/pilot.controller';
 import flowController from './controllers/flow.controller';
 import airportController from './controllers/airport.controller';
+import userController from './controllers/user.controller';
 import metaController from './controllers/meta.controller';
 import requestloggerUtils from './utils/requestlogger.utils';
 import authController from './controllers/auth.controller';
@@ -29,6 +30,8 @@ router.get('/pilots/:callsign/logs', pilotController.getPilotLogs);
 router.delete('/pilots/:callsign', pilotController.deletePilot);
 router.patch('/pilots/:callsign', pilotController.updatePilot);
 
+router.get('/users', authMiddleware, userController.getAllUsers);
+router.patch('/users/:id', authMiddleware, userController.updateUser);
 
 router.patch('/vdgs/:callsign', authMiddleware, pilotController.updatePilot);
 

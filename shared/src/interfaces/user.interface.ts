@@ -1,4 +1,5 @@
 interface User {
+  _id: string,
   apidata: {
     cid: number;
     personal: {
