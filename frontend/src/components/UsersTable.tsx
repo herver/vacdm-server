@@ -78,6 +78,18 @@ const UsersTable = () => {
     );
   };
 
+  const locationTemplate = (rowData: User) => {
+    const division = rowData.apidata.vatsim.division.id || 'None';
+    const region = rowData.apidata.vatsim.region.id || 'None';
+    const subdivision = rowData.apidata.vatsim.subdivision.id || 'None';
+
+    return `${division}/${region}/${subdivision}`;
+  };
+
+  const filters = {
+
+  }
+
   if (loading) {
     return <Loading />;
   }
@@ -92,9 +104,11 @@ const UsersTable = () => {
             value={users}
             responsiveLayout="scroll"
             loading={loading}
+            paginator showGridlines rows={20}
           >
             <Column field="apidata.cid" header="CID" sortable />
             <Column field="apidata.personal.name_full" header="Name" sortable />
+            <Column body={locationTemplate} header="ACC" sortable />
             <Column field="apidata.vatsim.rating.short" header="Rating" sortable />
             <Column field="vacdm.atc" header="ATC" body={atcTemplate} />
             <Column field="vacdm.admin" header="Admin" body={adminTemplate} />

@@ -7,14 +7,13 @@ interface User {
       name_last: string;
       name_full: string;
     };
-  };
-
-  vatsim: {
-    rating: LongVatsimDetails;
-    pilotrating: LongVatsimDetails;
-    division: ShortVatsimDetails;
-    region: ShortVatsimDetails;
-    subdivision: ShortVatsimDetails;
+    vatsim: {
+      rating: LongVatsimDetails;
+      pilotrating: LongVatsimDetails;
+      division: ShortVatsimDetails;
+      region: ShortVatsimDetails;
+      subdivision: ShortVatsimDetails;
+    };
   };
 
   access_token?: string;
