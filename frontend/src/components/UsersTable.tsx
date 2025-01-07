@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { DataTable } from "primereact/datatable";
+import { InputText } from 'primereact/inputtext';
+import { FilterMatchMode } from "primereact/api";
+import { Button } from "primereact/button";
 import { Column } from "primereact/column";
 import { Card } from "primereact/card";
 import UserService from "../services/UserService"; 
@@ -11,6 +14,10 @@ import { ToggleButton } from 'primereact/togglebutton';
 const UsersTable = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({
+    global: {value: null, matchMode: FilterMatchMode.CONTAINS}
+  });
+  const [globalFilterValue, setGlobalFilterValue] = useState('');
   const toast = useRef<Toast>(null);
 
   useEffect(() => {
@@ -83,16 +90,43 @@ const UsersTable = () => {
     const region = rowData.apidata.vatsim.region.id || 'None';
     const subdivision = rowData.apidata.vatsim.subdivision.id || 'None';
 
-    return `${division}/${region}/${subdivision}`;
+    return `${subdivision}/${region}/${division}`;
   };
-
-  const filters = {
-
-  }
 
   if (loading) {
     return <Loading />;
   }
+
+  // Client-side filtering
+  const handleGlobalFilterChange = (e: any) => {
+    const value = e.target.value;
+    setGlobalFilterValue(value);
+    setFilters({
+      ...filters,
+      global: { value: value, matchMode: FilterMatchMode.CONTAINS }
+    });
+  };
+
+  const clearFilters = () => {
+    setGlobalFilterValue('');
+    setFilters({
+      global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    });
+  };
+
+    const searchHeader = (
+    <div className="flex justify-content-end">
+      <span className="p-input-icon-left">
+        <i className="pi pi-search" />
+        <InputText
+          value={globalFilterValue}
+          onChange={handleGlobalFilterChange}
+          placeholder="Search..."
+        />
+        <Button label="Clear" icon="pi pi-times" onClick={clearFilters} className="p-button-outlined" />
+      </span>
+    </div>
+  );
 
   return (
     <div className="grid">
@@ -102,16 +136,24 @@ const UsersTable = () => {
         <Card>
           <DataTable
             value={users}
-            responsiveLayout="scroll"
+            stripedRows
             loading={loading}
-            paginator showGridlines rows={20}
+            paginator rows={10}
+            showGridlines size="small"
+            header={searchHeader}
+            filters={filters}
+            emptyMessage="No users found"
           >
             <Column field="apidata.cid" header="CID" sortable />
             <Column field="apidata.personal.name_full" header="Name" sortable />
-            <Column body={locationTemplate} header="ACC" sortable />
             <Column field="apidata.vatsim.rating.short" header="Rating" sortable />
+            <Column body={locationTemplate} header="ACC" />
             <Column field="vacdm.atc" header="ATC" body={atcTemplate} />
             <Column field="vacdm.admin" header="Admin" body={adminTemplate} />
+
+            <Column field="apidata.vatsim.region.id" header="Region" hidden />
+            <Column field="apidata.vatsim.division.id" header="Div" hidden />
+            <Column field="apidata.vatsim.subdivision.id" header="Subdiv" hidden/>
           </DataTable>
         </Card>
       </div>
