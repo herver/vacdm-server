@@ -80,8 +80,20 @@
 
 .footer {
   position: fixed;
+  display: flex;
+  justify-content: space-between;
   bottom: 0px;
   width:100%;
   z-index: 102;
   background-color: var(--surface-d);
+}
+
+.footer ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.footer ul li {
+  display: inline-block;
 }
