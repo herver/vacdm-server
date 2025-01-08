@@ -14,6 +14,7 @@ import VdgsService from "services/VdgsService";
 import AuthService from "services/AuthService";
 import DatafeedService from "services/DatafeedService";
 import utc from "dayjs/plugin/utc";
+import Clock from "./Clock";
 
 dayjs.extend(utc);
 
@@ -26,7 +27,6 @@ const Vdgs = () => {
   const [inputTextValue, setinputTextValue] = useState("");
   const [validity, setValidity] = useState("");
   const [wrongFormat, setwrongFormat] = useState("");
-  const [clock, setClock] = useState(dayjs(new Date()).utc().format('HH:mm:ss'));
   const toast: any = useRef(null);
 
   useEffect(() => {
@@ -38,17 +38,11 @@ const Vdgs = () => {
 
     loadData();
     let intervalId = setInterval(loadData, 10000);
-    let clockInterval = setInterval(utcTime, 1000)
 
     return () => {
       clearInterval(intervalId);
-      clearInterval(clockInterval);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  function utcTime() {
-    return setClock(dayjs(new Date()).utc().format('HH:mm:ss'));
-  }
 
   async function checkPilot() {
     try {
@@ -162,7 +156,7 @@ const Vdgs = () => {
         </div>
         <div className="col-12 lg:col">
           <Card>
-            <span className="text-3xl">{clock} UTC</span>
+            <span className="text-3xl"><Clock /></span>
 
             {tobtConfimationText()}
             
