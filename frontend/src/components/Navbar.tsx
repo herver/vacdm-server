@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import AuthService from 'services/AuthService';
 import logo from '../assets/cdm_logo.png';
 import { FrontendSettings } from '@shared/interfaces/config.interface';
+import { Button } from 'primereact/button';
 
 function Navbar(props: any) {
   const [config, setConfig] = useState<FrontendSettings>();
@@ -54,14 +55,6 @@ function Navbar(props: any) {
       },
       permission: (user) => user,
     },
-    {
-      label: 'Logout',
-      icon: 'pi pi-fw pi-power-off',
-      command: () => {
-        logout();
-      },
-      permission: (user) => user,
-    },
   ];
 
   useEffect(() => {
@@ -90,7 +83,12 @@ function Navbar(props: any) {
   const start = <img alt="logo" src={logo} height="40" className="mr-2"></img>;
   const end = (
     <div className="flex gap-3 align-items-center">
-      <div>{!auth.auth.user ? '' : 'Logged in as ' + user?.apidata?.personal?.name_full} </div>
+      <div>{!auth.auth.user ? '' : 
+        <Button icon="pi pi-fw pi-power-off" size="small" severity="secondary" onClick={logout} label={user?.apidata?.personal?.name_full} tooltip="Logout" />
+        }
+      </div>
+      
+
       {config?.vaccLogoUrl && <img alt="vacc-logo" src={config?.vaccLogoUrl} height="40" />}
     </div>
   );
