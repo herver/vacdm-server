@@ -129,36 +129,30 @@ const UsersTable = () => {
   );
 
   return (
-    <div className="grid">
+    <Card>
       <Toast ref={toast} />
-      <div className="col"></div>
-      <div className="col-8">
-        <Card>
-          <DataTable
-            value={users}
-            stripedRows
-            loading={loading}
-            paginator rows={10}
-            showGridlines size="small"
-            header={searchHeader}
-            filters={filters}
-            emptyMessage="No users found"
-          >
-            <Column field="apidata.cid" header="CID" sortable />
-            <Column field="apidata.personal.name_full" header="Name" sortable />
-            <Column field="apidata.vatsim.rating.short" header="Rating" sortable />
-            <Column body={locationTemplate} header="ACC" />
-            <Column field="vacdm.atc" header="ATC" body={atcTemplate} />
-            <Column field="vacdm.admin" header="Admin" body={adminTemplate} />
+      <DataTable
+        value={users}
+        stripedRows
+        loading={loading}
+        paginator rows={10}
+        showGridlines size="small"
+        header={searchHeader}
+        filters={filters}
+        emptyMessage="No users found"
+      >
+        <Column field="apidata.cid" header="CID" sortable />
+        <Column field="apidata.personal.name_full" header="Name" sortable />
+        <Column field="apidata.vatsim.rating.short" header="Rating" sortable />
+        <Column body={locationTemplate} header="ACC" />
+        <Column field="vacdm.atc" header="ATC" body={atcTemplate} />
+        <Column field="vacdm.admin" header="Admin" body={adminTemplate} />
 
-            <Column field="apidata.vatsim.region.id" header="Region" hidden />
-            <Column field="apidata.vatsim.division.id" header="Div" hidden />
-            <Column field="apidata.vatsim.subdivision.id" header="Subdiv" hidden/>
-          </DataTable>
-        </Card>
-      </div>
-      <div className="col"></div>
-    </div>
+        <Column field="apidata.vatsim.region.id" header="Region" hidden />
+        <Column field="apidata.vatsim.division.id" header="Div" hidden />
+        <Column field="apidata.vatsim.subdivision.id" header="Subdiv" hidden/>
+      </DataTable>
+    </Card>
   );
 };
 

@@ -73,9 +73,6 @@ const AirpotsTable = () => {
   };
 
   return (
-    <div className="grid">
-      <div className="col"></div>
-      <div className="col-8">
         <Card>
           <DataTable
             value={airports}
@@ -99,9 +96,6 @@ const AirpotsTable = () => {
             <Column header="Blocks" body={blocksButtonTemplate} />
           </DataTable>
         </Card>
-      </div>
-      <div className="col"></div>
-    </div>
   );
 };
 
