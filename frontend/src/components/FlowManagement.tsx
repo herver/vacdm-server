@@ -52,8 +52,8 @@ const FlowManagement = () => {
       <Checkbox
         checked={checked}
         onChange={(e) => {
-          setMeasureEnabled(rowData, e.checked);
-          checked = e.checked;
+          setMeasureEnabled(rowData, e.checked || false);
+          checked = e.checked || false;
         }}
       />
     );

@@ -33,7 +33,7 @@ const AirportDetails = () => {
   const [loading, setLoading] = useState(true);
   const [zone, setZone] = useState<any>();
   const [zoneDialog, setZoneDialog] = useState(false);
-  const [selectedZones, setSelectedZones] = useState(null);
+  const [selectedZones, setSelectedZones] = useState<AirportTaxizone[]>([]);
   const [deleteZoneDialog, setDeleteZoneDialog] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [value, setValue] = useState("");
@@ -307,6 +307,8 @@ const AirportDetails = () => {
                 header={header}
                 responsiveLayout="scroll"
                 selection={selectedZones}
+                selectionMode="multiple"
+                cellSelection={false}
                 onSelectionChange={(e) => setSelectedZones(e.value)}
                 globalFilter={globalFilter}
               >
