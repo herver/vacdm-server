@@ -195,7 +195,7 @@ const Debug = () => {
                     </div>
                     <div className="flex align-items-center justify-content-center  ">
                       <div className="inline-block">
-                        <div className="text-sm text-center">Insactive</div>
+                        <div className="text-sm text-center">Inactive</div>
                         <div className="text-2xl text-center">
                         {pilot.inactive ? "true" : "false"}
                         </div>

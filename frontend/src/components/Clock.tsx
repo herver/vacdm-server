@@ -1,9 +1,7 @@
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
-import MetaService from "services/MetaService";
 
 const Clock = () => {
-  const [version, setVersion] = useState<any>([]);
   const [clock, setClock] = useState(dayjs(new Date()).utc().format('HH:mm:ss'));
 
   useEffect(() => {
