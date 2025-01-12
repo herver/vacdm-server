@@ -9,6 +9,7 @@ import metaController from './controllers/meta.controller';
 import requestloggerUtils from './utils/requestlogger.utils';
 import authController from './controllers/auth.controller';
 import authMiddleware from './middleware/auth.middleware';
+import bookingsController from './controllers/bookings.controller';
 
 const router = Router();
 
@@ -29,6 +30,8 @@ router.get('/pilots/:callsign', pilotController.getPilot);
 router.get('/pilots/:callsign/logs', pilotController.getPilotLogs);
 router.delete('/pilots/:callsign', pilotController.deletePilot);
 router.patch('/pilots/:callsign', pilotController.updatePilot);
+
+router.delete('/bookings/cache/:callsign', authMiddleware, bookingsController.purgeBookingsCache);
 
 router.get('/users', authMiddleware, userController.getAllUsers);
 router.patch('/users/:id', authMiddleware, userController.updateUser);

@@ -1,10 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { classNames } from "primereact/utils";
 
 import { MultiSelect } from "primereact/multiselect";
 import { FilterMatchMode, FilterOperator } from "primereact/api";
+
+import { Toast } from "primereact/toast";
+import axios from "axios";
 
 import { Button } from "primereact/button";
 import PilotService from "../services/PilotService";
@@ -16,11 +19,13 @@ import TimeUtils from "../utils/time";
 import { Link } from "react-router-dom";
 import Pilot from "@shared/interfaces/pilot.interface"
 import Loading from "./Loading";
+import BookingsService from "../services/BookingsService";
 
 dayjs.extend(utc);
 dayjs.extend(relativeTime);
 
 const PilotsTable = () => {
+  const toast = useRef<Toast>(null);
   const [pilots, setPilots] = useState<Pilot[]>([]);
   const [departureAirports, setdepartureAirports] = useState<any[]>([]);
   const [arrivalAirports, setarrivalAirports] = useState<any[]>([]);
@@ -141,6 +146,38 @@ const PilotsTable = () => {
     );
   };
 
+   const purgeButtonTemplate = (rowData: any) => {
+    const handlePurge = async () => {
+      try {
+        await BookingsService.purgeBookingsCache(rowData.callsign);
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Success',
+          detail: `Cache purged for ${rowData.callsign}`,
+          life: 3000
+        });
+      } catch (error) {
+        toast.current?.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to purge cache',
+          life: 3000
+        });
+      }
+    };
+
+    if (rowData.hasBooking) {
+    return (
+      <Button 
+        className="p-button-danger p-button-sm" 
+        label="Purge Booking" 
+        onClick={handlePurge}
+      />
+    );
+    }
+
+  };
+
   const debugButtonTemplate = (rowData: any) => {
     return (
       <Link to={`/debug/${rowData.callsign}`}>
@@ -156,6 +193,7 @@ const PilotsTable = () => {
   }
   return (
     <div>
+      <Toast ref={toast} />
       <Card>
         <DataTable
           size="small"
@@ -226,6 +264,7 @@ const PilotsTable = () => {
             filterElement={arrivalFilterTemplate}
             showFilterMatchModes={false}
           />
+          <Column header="" body={purgeButtonTemplate} align="center" />
           <Column header="" body={debugButtonTemplate} align="center" />
         </DataTable>
       </Card>

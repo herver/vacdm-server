@@ -2,6 +2,10 @@ import axios from "axios";
 import config from "../config";
 import dayjs from "dayjs";
 import Logger from "@dotfionn/logger";
+import pilotService from "./pilot.service";
+import Pilot from '@shared/interfaces/pilot.interface';
+import timeUtils from "../utils/time.utils";
+import pilotModel from "../models/pilot.model";
 
 const logger = new Logger("vACDM:services:booking");
 
@@ -96,8 +100,37 @@ export async function pilotBookingCTOT(cid: number): Promise<Date> {
   }
 }
 
+export async function purgeBookingsCache(callsign: string): Promise<boolean> {
+  try {
+    lastPull = null;
+    relevantBookings = null;
+
+    const pilot: Pilot = await pilotService.getPilot(callsign);
+
+    // Reset booking related fields
+    const resetBookingOp = {
+      hasBooking: false,
+      vacdm: {
+          ...pilot.vacdm,
+          ctot: timeUtils.emptyDate,
+        }
+      }
+    
+    // Directly update db, the updatePilot service doesn't support Date changes
+     // necessary changes
+    const pilotDocument = await pilotModel
+      .findOneAndUpdate({ callsign }, { $set: resetBookingOp}, { new: true })
+      .exec();
+
+    return true;
+  } catch (error) {
+    throw error;
+  }
+}
+
 export default {
   getAllBookings,
   pilotHasBooking,
   pilotBookingCTOT,
+  purgeBookingsCache,
 };
