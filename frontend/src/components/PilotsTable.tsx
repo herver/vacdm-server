@@ -7,9 +7,9 @@ import { MultiSelect } from "primereact/multiselect";
 import { FilterMatchMode, FilterOperator } from "primereact/api";
 
 import { Toast } from "primereact/toast";
-import axios from "axios";
 
 import { Button } from "primereact/button";
+import { ToggleButton } from "primereact/togglebutton";
 import PilotService from "../services/PilotService";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
@@ -20,6 +20,7 @@ import { Link } from "react-router-dom";
 import Pilot from "@shared/interfaces/pilot.interface"
 import Loading from "./Loading";
 import BookingsService from "../services/BookingsService";
+import { InputText } from "primereact/inputtext";
 
 dayjs.extend(utc);
 dayjs.extend(relativeTime);
@@ -30,8 +31,9 @@ const PilotsTable = () => {
   const [departureAirports, setdepartureAirports] = useState<any[]>([]);
   const [arrivalAirports, setarrivalAirports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showInactive, setShowInactive] = useState(false);
   const [filters2, setFilters2] = useState({
-    "global": { value: null, matchMode: FilterMatchMode.CONTAINS },
+    "global": { value: null as string | null, matchMode: FilterMatchMode.CONTAINS },
     "flightplan.departure": { value: null, matchMode: FilterMatchMode.IN },
     "flightplan.arrival": { value: null, matchMode: FilterMatchMode.IN },
     "clearance.sid": {
@@ -48,6 +50,16 @@ const PilotsTable = () => {
     },
 
   });
+  const [globalFilterValue, setGlobalFilterValue] = useState("");
+
+  const onGlobalFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    let _filters2 = { ...filters2 };
+    _filters2['global'].value = value;
+
+    setFilters2(_filters2);
+    setGlobalFilterValue(value);
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -57,7 +69,7 @@ const PilotsTable = () => {
 
         data.forEach(
           (element: Pilot) => {
-            if (!element.inactive) {
+            if (showInactive || !element.inactive) {
               filteredPilots.push(element);
               const adep = element.flightplan.departure;
               const ades = element.flightplan.arrival;
@@ -83,7 +95,7 @@ const PilotsTable = () => {
     loadData();
 
     return () => clearInterval(intervalId);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [showInactive]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const AirportsItemTemplate = (option: any) => {
     return <span>{option.name}</span>;
@@ -195,6 +207,28 @@ const PilotsTable = () => {
     <div>
       <Toast ref={toast} />
       <Card>
+        <div className="p-2 flex align-items-center justify-content-between">
+          <div>
+            <ToggleButton
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.value)}
+              onLabel="Hide Inactive"
+              offLabel="Show Inactive"
+              className="mr-2"
+            />
+          </div>
+          <div className="flex align-items-center">
+            <span className="p-input-icon-left">
+              <i className="pi pi-search" />
+              <InputText
+                value={globalFilterValue}
+                onChange={onGlobalFilterChange}
+                placeholder="Search..."
+                className="p-inputtext-sm"
+              />
+            </span>
+          </div>
+        </div>
         <DataTable
           size="small"
           value={pilots}
@@ -204,11 +238,11 @@ const PilotsTable = () => {
           dataKey="callsign"
           sortField="vacdm.tsat"
           sortOrder={1}
-          globalFilterFields={["callsign"]}
           scrollable
           responsiveLayout="scroll"
           stateStorage="local"
           stateKey="pilots-table"
+          globalFilter={globalFilterValue}
         >
           <Column
             field="callsign"
