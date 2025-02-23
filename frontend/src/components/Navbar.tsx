@@ -85,7 +85,7 @@ function Navbar(props: any) {
     <div className="flex gap-3 align-items-center">
       {config?.vaccLogoUrl && <img alt="vacc-logo" src={config?.vaccLogoUrl} height="40" />}
       <div>
-        {!auth.auth.user ? '' : <Button icon="pi pi-fw pi-power-off" size="small" severity="secondary" onClick={logout} label={user?.apidata?.personal?.name_full} tooltip="Logout" /> }
+        {!auth.auth.user ? '' : <Button icon="pi pi-fw pi-power-off" size="small" severity="secondary" onClick={logout} label={user?.apidata?.cid} tooltip="Logout" /> }
       </div>
     </div>
   );
