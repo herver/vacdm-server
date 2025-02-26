@@ -48,6 +48,7 @@ router.get('/airports/:icao', airportController.getAirport);
 router.get('/airports/:icao/blocks', airportController.getAirportBlocks);
 router.delete('/airports/:icao', airportController.deleteAirport);
 router.patch('/airports/:icao', airportController.updateAirport);
+router.delete('/airports/:icao/pilots', authMiddleware, airportController.deleteAllPilots);
 
 router.get('/auth/login', authController.authUser);
 router.get('/auth/logout', authController.logoutUser);

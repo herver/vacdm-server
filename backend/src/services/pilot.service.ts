@@ -285,6 +285,36 @@ export async function getPilotLogs(
   }
 }
 
+export async function deleteAllPilotsByAirport(icao: string): Promise<void> {
+  try {
+    // Find all pilots for this airport
+    const pilots = await pilotModel.find({ 'flightplan.departure': icao }).exec();
+    
+    // Get all callsigns
+    const callsigns = pilots.map(pilot => pilot.callsign);
+    
+    // Delete all pilots for this airport
+    await pilotModel.deleteMany({ 'flightplan.departure': icao }).exec();
+    
+    // Delete all logs for these pilots
+    await pilotLogModel.deleteMany({ pilot: { $in: callsigns } }).exec();
+
+    console.log("Deleted all pilots for", icao);
+    
+    // Log the action
+    await addLog({
+      namespace: "admin",
+      action: "delete-all-pilots",
+      data: {
+        airport: icao,
+        pilotsCount: callsigns.length
+      }
+    });
+  } catch (e) {
+    throw e;
+  }
+}
+
 export default {
   getAllPilots,
   getPilot,
@@ -294,4 +324,5 @@ export default {
   updatePilot,
   addLog,
   getPilotLogs,
+  deleteAllPilotsByAirport,
 };

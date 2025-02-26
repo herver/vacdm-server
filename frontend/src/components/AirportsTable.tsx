@@ -1,18 +1,22 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Card } from "primereact/card";
 import AirportService from "../services/AirportService";
 import { InputTextarea } from "primereact/inputtextarea";
-
 import { Badge } from 'primereact/badge';
 import { Link } from "react-router-dom";
 import { Button } from "primereact/button";
+import AuthContext from 'contexts/AuthProvider'; // Import AuthContext
 
 const AirpotsTable = () => {
   const [airports, setAirports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedRows, setExpandedRows] = useState<any>(null);
+  const auth: any = useContext(AuthContext); // Use the same AuthContext as Navbar
+
+  // Check if user is admin
+  const isAdmin = auth.auth.user && auth.auth.user.vacdm && auth.auth.user.vacdm.admin;
 
   useEffect(() => {
     AirportService.getAirports().then((data: any[]) => {
@@ -41,6 +45,41 @@ const AirpotsTable = () => {
     );
   };
 
+  const handleDeleteAllPilots = async (icao: string) => {
+    if (window.confirm(`Are you sure you want to delete ALL pilots for ${icao}? This action cannot be undone!`)) {
+      try {
+        const response = await fetch(`/api/v1/airports/${icao}/pilots`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to delete pilots');
+        }
+        
+        // Show success message
+        alert(`Successfully deleted all pilots for ${icao}`);
+      } catch (error) {
+        console.error('Error deleting pilots:', error);
+        alert('Failed to delete pilots');
+      }
+    }
+  };
+
+  const deleteAllPilotsTemplate = (rowData: any) => {
+    return (
+      <Button 
+        onClick={() => handleDeleteAllPilots(rowData.icao)} 
+        className="p-button-sm p-button-danger"
+        label="Delete All Pilots"
+        icon="pi pi-trash"
+        tooltip={`Delete all pilots and logs for ${rowData.icao}`}
+        tooltipOptions={{ position: 'top' }}
+      />
+    );
+  };
 
   const rowExpansionTemplate = (data: any) => {
     return (
@@ -94,6 +133,9 @@ const AirpotsTable = () => {
             <Column field="capacities.length" header="Capacities"></Column>
             <Column body={editButtonTemplate} header="Actions"></Column>
             <Column header="Blocks" body={blocksButtonTemplate} />
+            {isAdmin && (
+              <Column header="Delete All Pilots" body={deleteAllPilotsTemplate} />
+            )}
           </DataTable>
         </Card>
   );

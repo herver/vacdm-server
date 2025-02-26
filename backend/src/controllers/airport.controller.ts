@@ -98,6 +98,16 @@ export async function updateAirport(req: Request, res: Response, next: NextFunct
   }
 }
 
+const deleteAllPilots = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { icao } = req.params;
+    await pilotService.deleteAllPilotsByAirport(icao);
+    return res.json({ message: `All pilots for ${icao} have been deleted` });
+  } catch (e) {
+    return next(e);
+  }
+};
+
 export default {
   getAllAirports,
   getAirport,
@@ -105,4 +115,5 @@ export default {
   addAirport,
   deleteAirport,
   updateAirport,
+  deleteAllPilots
 };
