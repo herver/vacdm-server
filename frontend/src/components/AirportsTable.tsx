@@ -46,7 +46,7 @@ const AirpotsTable = () => {
   };
 
   const handleDeleteAllPilots = async (icao: string) => {
-    if (window.confirm(`Are you sure you want to delete ALL pilots for ${icao}? This action cannot be undone!`)) {
+    if (window.confirm(`Are you sure you want to flush ALL pilots data for ${icao}? This action cannot be undone!`)) {
       try {
         const response = await fetch(`/api/v1/airports/${icao}/pilots`, {
           method: 'DELETE',
@@ -56,14 +56,14 @@ const AirpotsTable = () => {
         });
         
         if (!response.ok) {
-          throw new Error('Failed to delete pilots');
+          throw new Error('Failed to flush pilots');
         }
         
         // Show success message
-        alert(`Successfully deleted all pilots for ${icao}`);
+        alert(`Successfully flushed all pilots for ${icao}`);
       } catch (error) {
-        console.error('Error deleting pilots:', error);
-        alert('Failed to delete pilots');
+        console.error('Error flushing pilots:', error);
+        alert('Failed to flush pilots');
       }
     }
   };
@@ -73,9 +73,9 @@ const AirpotsTable = () => {
       <Button 
         onClick={() => handleDeleteAllPilots(rowData.icao)} 
         className="p-button-sm p-button-danger"
-        label="Delete All Pilots"
+        label="Flush All Pilots"
         icon="pi pi-trash"
-        tooltip={`Delete all pilots and logs for ${rowData.icao}`}
+        tooltip={`Flush all pilots and logs for ${rowData.icao}`}
         tooltipOptions={{ position: 'top' }}
       />
     );
@@ -134,7 +134,7 @@ const AirpotsTable = () => {
             <Column body={editButtonTemplate} header="Actions"></Column>
             <Column header="Blocks" body={blocksButtonTemplate} />
             {isAdmin && (
-              <Column header="Delete All Pilots" body={deleteAllPilotsTemplate} />
+              <Column header="Flush All Pilots" body={deleteAllPilotsTemplate} />
             )}
           </DataTable>
         </Card>
