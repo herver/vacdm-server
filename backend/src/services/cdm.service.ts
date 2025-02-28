@@ -14,6 +14,12 @@ import dayjs from "dayjs";
 import userModel from "../models/user.model";
 const logger = new Logger("vACDM:services:cdm");
 
+// Add constants at the top of the file
+const FIVE_MINUTES_MS = 5 * 60 * 1000;
+const TEN_MINUTES_MS = 10 * 60 * 1000;
+const MAX_BLOCKS_TO_CHECK = 60;
+const MAX_BLOCKS_TO_LOOK_AHEAD = 7;
+
 export function determineInitialBlock(pilot: PilotDocument): {
   initialBlock: number;
   initialTtot: Date;
@@ -24,10 +30,11 @@ export function determineInitialBlock(pilot: PilotDocument): {
   ) {
     pilot.vacdm.tobt = pilot.vacdm.eobt;
     pilot.vacdm.tobt_state = "FLIGHTPLAN";
+    logger.debug(`Using EOBT as TOBT for pilot ${pilot.callsign} as no TOBT was provided`);
   }
 
   if (timeUtils.isTimeEmpty(pilot.vacdm.tobt)) {
-    throw new Error("no time given!");
+    throw new Error(`No TOBT or EOBT available for pilot ${pilot.callsign}`);
   }
 
   let initialTtot = timeUtils.addMinutes(pilot.vacdm.tobt, pilot.vacdm.exot);
@@ -242,7 +249,7 @@ export async function cleanupPilots() {
         {
           "vacdm.tsat": {
             $lt: new Date(
-              Date.now() - 5 * 60 * 1000 // minutes
+              Date.now() - FIVE_MINUTES_MS
             ).getTime(),
           },
         },
@@ -253,6 +260,8 @@ export async function cleanupPilots() {
   logger.debug("pilotsToBeDeactivated", pilotsToBeDeactivated);
 
   for (let pilot of pilotsToBeDeactivated) {
+    // Improved error messages
+    logger.debug(`Deactivating pilot ${pilot.callsign} due to stale GUESS TOBT state`);
     pilot.inactive = true;
     pilot.disabledAt = new Date();
 
@@ -271,13 +280,13 @@ export async function cleanupPilots() {
   }
 
   // Deactivation for CONFIRMED pilots and TOBT < now() + 5 minutes (and ASAT is emptyDate)
-  const pilotsConfirmedToBeDeactivated = await pilotModel
+    const pilotsConfirmedToBeDeactivated = await pilotModel
     .find({
       inactive: { $not: { $eq: true } },
       "vacdm.tobt_state": { $eq: "CONFIRMED" },
       "vacdm.tsat": {
         $lt: new Date(
-          Date.now() - 5 * 60 * 1000 // minutes
+          Date.now() - FIVE_MINUTES_MS
         ).getTime(),
       },
       "vacdm.asat": {
@@ -292,6 +301,8 @@ export async function cleanupPilots() {
   );
 
   for (let pilot of pilotsConfirmedToBeDeactivated) {
+    // Improved error message
+    logger.debug(`Deactivating confirmed pilot ${pilot.callsign} with TSAT in the past and no ASAT`);
     pilot.inactive = true;
     pilot.disabledAt = new Date();
 
@@ -311,8 +322,9 @@ export async function cleanupPilots() {
 }
 
 export async function optimizeBlockAssignments() {
-  let currentBlockId = blockUtils.getBlockFromTime(new Date());
-  let allAirports = await airportService.getAllAirports();
+  // Use constants for optimization
+  const currentBlockId = blockUtils.getBlockFromTime(new Date());
+  const allAirports = await airportService.getAllAirports();
 
   let allPilots = await pilotService.getAllPilots({ inactive: { $eq: false } });
 
@@ -410,7 +422,7 @@ export async function optimizeBlockAssignments() {
       // do it
       for (
         let firstBlockCounter = 0;
-        firstBlockCounter < 60;
+        firstBlockCounter < MAX_BLOCKS_TO_CHECK;
         firstBlockCounter++
       ) {
         const firstBlockId = (currentBlockId + firstBlockCounter) % 144;
@@ -431,7 +443,7 @@ export async function optimizeBlockAssignments() {
         // sort pilots for block, prio, delay
         for (
           let secondBlockCounter = 1;
-          secondBlockCounter < 7;
+          secondBlockCounter < MAX_BLOCKS_TO_LOOK_AHEAD;
           secondBlockCounter++
         ) {
           let otherBlockId = (firstBlockId + secondBlockCounter) % 144;
