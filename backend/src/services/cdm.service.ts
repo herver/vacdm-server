@@ -279,8 +279,8 @@ export async function cleanupPilots() {
     await pilot.save();
   }
 
-  // Deactivation for CONFIRMED pilots and TOBT < now() + 5 minutes (and ASAT is emptyDate)
-    const pilotsConfirmedToBeDeactivated = await pilotModel
+  // Instead of just deactivating confirmed pilots with expired TSATs, update their TOBT
+  const pilotsConfirmedWithExpiredTsat = await pilotModel
     .find({
       inactive: { $not: { $eq: true } },
       "vacdm.tobt_state": { $eq: "CONFIRMED" },
@@ -292,33 +292,49 @@ export async function cleanupPilots() {
       "vacdm.asat": {
         $eq: emptyDate,
       },
+      "vacdm.asrt": {
+        $eq: emptyDate,
+      },
     })
     .exec();
 
   logger.debug(
-    "pilotsConfirmedToBeDeactivated",
-    pilotsConfirmedToBeDeactivated
+    "pilotsConfirmedWithExpiredTsat",
+    pilotsConfirmedWithExpiredTsat
   );
 
-  for (let pilot of pilotsConfirmedToBeDeactivated) {
-    // Improved error message
-    logger.debug(`Deactivating confirmed pilot ${pilot.callsign} with TSAT in the past and no ASAT`);
-    pilot.inactive = true;
-    pilot.disabledAt = new Date();
-
+  for (let pilot of pilotsConfirmedWithExpiredTsat) {
+    // Add 30 minutes to TOBT instead of deactivating
+    const newTobt = timeUtils.addMinutes(new Date(), 30);
+    logger.debug(`Updating TOBT for pilot ${pilot.callsign} with expired TSAT. New TOBT: ${newTobt}`);
+    
+    // Update the pilot's TOBT
+    pilot.vacdm.tobt = newTobt;
+    pilot.vacdm.tsat = timeUtils.emptyDate; // Clear TSAT to force recalculation
+    pilot.vacdm.ttot = timeUtils.emptyDate; // Clear TTOT too
+    
     await pilotService.addLog({
       pilot: pilot.callsign,
       namespace: "worker",
-      action: "deactivated confirmed pilot",
+      action: "auto-updated TOBT due to expired TSAT",
       data: {
         updated: pilot.updatedAt,
+        oldTsat: pilot.vacdm.tsat,
+        newTobt: newTobt
       },
     });
 
-    logger.debug("deactivating confirmed pilot", pilot.callsign);
-
     await pilot.save();
+    
+    // Trigger recalculation of block assignment
+    try {
+      await putPilotIntoBlock(pilot, await pilotService.getAllPilots());
+    } catch (error) {
+      logger.error(`Error recalculating block for pilot ${pilot.callsign}`, error);
+    }
   }
+
+  // Keep the rest of the cleanup logic...
 }
 
 export async function optimizeBlockAssignments() {
