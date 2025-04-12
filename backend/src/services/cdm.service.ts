@@ -19,6 +19,7 @@ const FIVE_MINUTES_MS = 5 * 60 * 1000;
 const TEN_MINUTES_MS = 10 * 60 * 1000;
 const MAX_BLOCKS_TO_CHECK = 60;
 const MAX_BLOCKS_TO_LOOK_AHEAD = 7;
+const ASRT_PRIO_BONUS = 5;
 
 export function determineInitialBlock(pilot: PilotDocument): {
   initialBlock: number;
@@ -368,6 +369,7 @@ export async function optimizeBlockAssignments() {
         datafeedPilot.cid
       );
 
+      // Has booking
       if (
         pilotHasBooking &&
         pilot.vacdm.aobt.getTime() == emptyDate.getTime() // safeguard to only update booking on blocks
@@ -407,8 +409,21 @@ export async function optimizeBlockAssignments() {
           },
         });
 
-        await pilot.save();
       }
+
+      // All cases
+
+      // ASRT set but ASAT not (yet) set: boost priority
+      if (
+        pilot.vacdm.asrt.getTime() != emptyDate.getTime() &&
+        pilot.vacdm.asat.getTime() == emptyDate.getTime() &&
+        pilot.vacdm.aobt.getTime() == emptyDate.getTime() // safeguard to only update booking on blocks
+      ) {
+        pilot.vacdm.prio += ASRT_PRIO_BONUS;
+      }
+
+      // Eventually save the pilot
+      await pilot.save();
     }
   }
 

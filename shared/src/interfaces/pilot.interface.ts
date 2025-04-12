@@ -19,6 +19,7 @@ interface Pilot {
     ctot: Date;
     ttot: Date;
 
+    asrt: Date;
     asat: Date;
     aobt: Date;
 
