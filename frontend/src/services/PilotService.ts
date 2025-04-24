@@ -25,6 +25,10 @@ async function getPilots(): Promise<Pilot[]> {
     }
   }
 
+  async function updatePilot(callsign: string, data: Partial<Pilot>): Promise<Pilot> {
+    const response = await axios.patch(`/api/v1/pilots/${callsign}`, data);
+    return response.data;
+  }
 
   async function getPilotLogs(callsign: string | undefined): Promise<PilotLog[]> {
     try {
@@ -43,6 +47,7 @@ async function getPilots(): Promise<Pilot[]> {
 export default {
   getPilots,
   getPilot,
+  updatePilot,
   getPilotLogs
 }
 
