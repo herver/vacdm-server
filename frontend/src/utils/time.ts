@@ -5,6 +5,13 @@ import relativeTime from "dayjs/plugin/relativeTime";
 dayjs.extend(utc);
 dayjs.extend(relativeTime);
 
+const emptyDateValue = -1;
+const emptyDate = new Date(emptyDateValue);
+
+function isTimeEmpty(date: Date): boolean {
+  return date.valueOf() == emptyDateValue;
+}
+
 function formatTime(inputTime: Date | undefined) {
   if (!inputTime || dayjs(inputTime).unix() === -1) {
     return "-";
@@ -41,4 +48,5 @@ export default {
   calculateVdgsDiff,
   flowTimeFormat,
   formatVdgsTobt,
+  isTimeEmpty
 };

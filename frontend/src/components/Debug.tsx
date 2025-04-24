@@ -4,10 +4,11 @@ import PilotService from "../services/PilotService";
 import { Card } from "primereact/card";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
-import { Calendar } from "primereact/calendar";
+import { InputNumber } from "primereact/inputnumber";
 import { Button } from "primereact/button";
 import { Toast } from "primereact/toast";
 import Pilot, { PilotLog } from "@shared/interfaces/pilot.interface";
+import timeUtils from "../utils/time";
 
 const Debug = () => {
   const { callsign } = useParams();
@@ -15,8 +16,16 @@ const Debug = () => {
   const [logs, setLogs] = useState<PilotLog[]>();
   const [loading, setLoading] = useState(true);
   const [newCtot, setNewCtot] = useState<Date | null>(null);
+  const [ctotHour, setCtotHour] = useState<number | null>(null);
+  const [ctotMinute, setCtotMinute] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const toast = useRef<Toast>(null);
+
+  // Format date to UTC string in a readable format
+  const formatUTC = (date: Date | null | undefined): string => {
+    if (!date) return "Not set";
+    return new Date(date).toISOString().replace("T", " ").slice(0, 19) + " UTC";
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -24,8 +33,20 @@ const Debug = () => {
         const data = await PilotService.getPilot(callsign);
 
         setPilot(data);
-        if (data?.vacdm?.ctot) {
-          setNewCtot(new Date());
+        if (!timeUtils.isTimeEmpty(new Date(data?.vacdm?.ctot))) {
+          const ctotDate = new Date(data.vacdm.ctot);
+          setNewCtot(ctotDate);
+          setCtotHour(ctotDate.getUTCHours());
+          setCtotMinute(ctotDate.getUTCMinutes());
+        } else {
+          // If no CTOT is set, default to current time + 30 minutes
+          console.log("CTOT EMPTY:", data.vacdm.ctot);
+
+          const defaultDate = new Date();
+          defaultDate.setMinutes(defaultDate.getMinutes() + 30);
+          setNewCtot(defaultDate);
+          setCtotHour(defaultDate.getUTCHours());
+          setCtotMinute(defaultDate.getUTCMinutes());
         }
         setLoading(false);
         const logs = await PilotService.getPilotLogs(callsign);
@@ -43,13 +64,22 @@ const Debug = () => {
     return <pre>{JSON.stringify(rowData.data, null, 2)}</pre>;
   };
 
+  // Update the newCtot date when hour or minute changes
+  useEffect(() => {
+    if (newCtot && ctotHour !== null && ctotMinute !== null) {
+      const updatedDate = new Date(newCtot);
+      updatedDate.setUTCHours(ctotHour);
+      updatedDate.setUTCMinutes(ctotMinute);
+      updatedDate.setUTCSeconds(0);
+      setNewCtot(updatedDate);
+    }
+  }, [ctotHour, ctotMinute]);
+
   const updateCtot = async () => {
     if (!pilot || !newCtot) return;
 
+    // Validate CTOT is in the future
     const now = new Date();
-    console.log("now", now);
-    console.log("oldCtot", pilot.vacdm.ctot);
-    console.log("newCtot", newCtot);
     if (newCtot <= now) {
       toast.current?.show({
         severity: "error",
@@ -62,6 +92,7 @@ const Debug = () => {
 
     setSubmitting(true);
     try {
+      // Update the pilot's CTOT
       await PilotService.updatePilot(pilot.callsign, {
         vacdm: {
           ...pilot.vacdm,
@@ -72,13 +103,17 @@ const Debug = () => {
       toast.current?.show({
         severity: "success",
         summary: "CTOT Updated",
-        detail: `${pilot.callsign}'s CTOT has been updated successfully`,
+        detail: `${pilot.callsign}'s CTOT has been updated to ${formatUTC(
+          newCtot
+        )}`,
         life: 3000,
       });
 
+      // Refresh data
       const updatedPilot = await PilotService.getPilot(callsign);
       setPilot(updatedPilot);
 
+      // Refresh logs
       const updatedLogs = await PilotService.getPilotLogs(callsign);
       setLogs(updatedLogs);
     } catch (error) {
@@ -205,9 +240,7 @@ const Debug = () => {
                     <div className="inline-block">
                       <div className="text-sm text-center">CTOT</div>
                       <div className="text-2xl text-center">
-                        {pilot.vacdm.ctot
-                          ? new Date(pilot.vacdm.ctot).toISOString()
-                          : "Not set"}
+                        {formatUTC(pilot.vacdm.ctot)}
                       </div>
                     </div>
                   </div>
@@ -246,30 +279,70 @@ const Debug = () => {
                   </div>
                 </div>
 
-                  <div className="mt-4">
-                    <h5>ATC Controls</h5>
-                    <div className="flex flex-row gap-3 align-items-center">
-                      <div className="inline-block">
-                        <div className="text-sm">Update CTOT</div>
-                        <Calendar
-                          id="ctot-picker"
-                          value={newCtot}
-                          onChange={(e) => setNewCtot(e.value as Date)}
-                          showTime
-                          hourFormat="24"
-                          showSeconds
-                          dateFormat="yy-mm-dd"
-                        />
-                      </div>
-                      <Button
-                        label="Save CTOT"
-                        icon="pi pi-save"
-                        onClick={updateCtot}
-                        loading={submitting}
-                        className="mt-4"
-                      />
+                <h5>ATC Controls</h5>
+                <div className="flex flex-row flex-wrap gap-3">
+                    <div className="flex align-items-center justify-content-center ">
+                      <span className="font-bold">Set CTOT Time (UTC):</span>{" "}
+                      {newCtot ? formatUTC(newCtot) : "Not set"}
                     </div>
+                </div>
+
+                <div className="flex flex-row flex-wrap gap-3">
+                  <div className="flex align-items-center justify-content-center ">
+                      <label htmlFor="hour-input" className="text-sm text-center">
+                        Hour (UTC)
+                      </label>
+                      <InputNumber
+                        id="hour-input"
+                        value={ctotHour}
+                        onValueChange={(e) => setCtotHour(e.value ?? null)}
+                        min={0}
+                        max={23}
+                        showButtons
+                        buttonLayout="horizontal"
+                        size={4}
+                        decrementButtonClassName="p-button-secondary"
+                        incrementButtonClassName="p-button-secondary"
+                        incrementButtonIcon="pi pi-plus"
+                        decrementButtonIcon="pi pi-minus"
+                      />
                   </div>
+                </div>
+
+                <div className="flex flex-row flex-wrap gap-3">
+                  <div className="flex align-items-center justify-content-center ">
+                    <label htmlFor="minute-input" className="text-sm text-center">
+                      Minute
+                    </label>
+                    <InputNumber
+                      id="minute-input"
+                      value={ctotMinute}
+                      onValueChange={(e) =>
+                        setCtotMinute(e.value ?? null)
+                      }
+                      min={0}
+                      max={59}
+                      showButtons
+                      buttonLayout="horizontal"
+                      size={4}
+                      decrementButtonClassName="p-button-secondary"
+                      incrementButtonClassName="p-button-secondary"
+                      incrementButtonIcon="pi pi-plus"
+                      decrementButtonIcon="pi pi-minus"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-row flex-wrap gap-3">
+                  <div className="flex align-items-center justify-content-center ">
+                    <Button
+                      label="Update CTOT"
+                      icon="pi pi-clock"
+                      onClick={updateCtot}
+                      loading={submitting}
+                    />
+                  </div>
+                </div>
 
                 <h5>Database Data</h5>
                 <div className="flex flex-row flex-wrap gap-3">
