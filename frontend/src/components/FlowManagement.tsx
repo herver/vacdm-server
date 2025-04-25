@@ -41,7 +41,22 @@ const FlowManagement = () => {
     return (
       <DataTable value={rowData.filters}>
         <Column field="type" header="Typ" />
-        <Column field="value" header="Value" />
+        <Column 
+          field="value" 
+          header="Value" 
+          body={(filter) => {
+            // Handle the case when value is an object (like in member_not_event filter)
+            if (filter.type === "member_not_event" && typeof filter.value === "object") {
+              return JSON.stringify(filter.value);
+            }
+            // Handle array values
+            else if (Array.isArray(filter.value)) {
+              return filter.value.join(", ");
+            }
+            // Return the value directly for primitive types
+            return filter.value;
+          }} 
+        />
       </DataTable>
     );
   };
