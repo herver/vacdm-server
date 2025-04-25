@@ -140,13 +140,8 @@ const Debug = () => {
         disabledAt: new Date(-1),
         vacdm: {
           ...pilot.vacdm,
-          tsat: new Date(-1),
           ctot: new Date(-1),
           ttot: new Date(-1),
-          asrt: new Date(-1),
-          aort: new Date(-1),
-          asat: new Date(-1),
-          aobt: new Date(-1),
         },
       });
 
