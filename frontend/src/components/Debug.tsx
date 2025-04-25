@@ -129,6 +129,54 @@ const Debug = () => {
     }
   };
 
+  const resetCdmTimes = async () => {
+    if (!pilot) return;
+
+    setSubmitting(true);
+    try {
+      // Reset all CDM times to new Date(-1)
+      await PilotService.updatePilot(pilot.callsign, {
+        inactive: false,
+        disabledAt: new Date(-1),
+        vacdm: {
+          ...pilot.vacdm,
+          tsat: new Date(-1),
+          ctot: new Date(-1),
+          ttot: new Date(-1),
+          asrt: new Date(-1),
+          aort: new Date(-1),
+          asat: new Date(-1),
+          aobt: new Date(-1),
+        },
+      });
+
+      toast.current?.show({
+        severity: "success",
+        summary: "Times Reset",
+        detail: `${pilot.callsign}'s CDM times have been reset`,
+        life: 3000,
+      });
+
+      // Refresh data
+      const updatedPilot = await PilotService.getPilot(callsign);
+      setPilot(updatedPilot);
+
+      // Refresh logs
+      const updatedLogs = await PilotService.getPilotLogs(callsign);
+      setLogs(updatedLogs);
+    } catch (error) {
+      toast.current?.show({
+        severity: "error",
+        summary: "Reset Failed",
+        detail: "Failed to reset CDM times",
+        life: 3000,
+      });
+      console.error("Failed to reset CDM times:", error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading || !pilot) {
     return <div>Loading</div>;
   }
@@ -280,66 +328,74 @@ const Debug = () => {
                 </div>
 
                 <h5>ATC Controls</h5>
-                <div className="flex flex-row flex-wrap gap-3">
-                    <div className="flex align-items-center justify-content-center ">
+                <div className="flex flex-column gap-3">
+                  <div>
+                    <div className="flex align-items-center">
                       <span className="font-bold">Set CTOT Time (UTC):</span>{" "}
                       {newCtot ? formatUTC(newCtot) : "Not set"}
                     </div>
-                </div>
-
-                <div className="flex flex-row flex-wrap gap-3">
-                  <div className="flex align-items-center justify-content-center ">
-                      <label htmlFor="hour-input" className="text-sm text-center">
-                        Hour (UTC)
-                      </label>
-                      <InputNumber
-                        id="hour-input"
-                        value={ctotHour}
-                        onValueChange={(e) => setCtotHour(e.value ?? null)}
-                        min={0}
-                        max={23}
-                        showButtons
-                        buttonLayout="horizontal"
-                        size={4}
-                        decrementButtonClassName="p-button-secondary"
-                        incrementButtonClassName="p-button-secondary"
-                        incrementButtonIcon="pi pi-plus"
-                        decrementButtonIcon="pi pi-minus"
-                      />
                   </div>
-                </div>
 
-                <div className="flex flex-row flex-wrap gap-3">
-                  <div className="flex align-items-center justify-content-center ">
-                    <label htmlFor="minute-input" className="text-sm text-center">
-                      Minute
-                    </label>
-                    <InputNumber
-                      id="minute-input"
-                      value={ctotMinute}
-                      onValueChange={(e) =>
-                        setCtotMinute(e.value ?? null)
-                      }
-                      min={0}
-                      max={59}
-                      showButtons
-                      buttonLayout="horizontal"
-                      size={4}
-                      decrementButtonClassName="p-button-secondary"
-                      incrementButtonClassName="p-button-secondary"
-                      incrementButtonIcon="pi pi-plus"
-                      decrementButtonIcon="pi pi-minus"
-                    />
+                  {/* Fix for the input fields layout */}
+                  <div className="grid">
+                    <div className="col-12 md:col-6 lg:col-5 xl:col-4">
+                      <div className="p-fluid">
+                        <label htmlFor="hour-input" className="mb-1">
+                          Hour (UTC)
+                        </label>
+                        <InputNumber
+                          id="hour-input"
+                          value={ctotHour}
+                          onValueChange={(e) => setCtotHour(e.value ?? null)}
+                          min={0}
+                          max={23}
+                          showButtons
+                          buttonLayout="horizontal"
+                          decrementButtonClassName="p-button-secondary"
+                          incrementButtonClassName="p-button-secondary"
+                          incrementButtonIcon="pi pi-plus"
+                          decrementButtonIcon="pi pi-minus"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="col-12 md:col-6 lg:col-5 xl:col-4">
+                      <div className="p-fluid">
+                        <label htmlFor="minute-input" className="mb-1">
+                          Minute
+                        </label>
+                        <InputNumber
+                          id="minute-input"
+                          value={ctotMinute}
+                          onValueChange={(e) => setCtotMinute(e.value ?? null)}
+                          min={0}
+                          max={59}
+                          showButtons
+                          buttonLayout="horizontal"
+                          decrementButtonClassName="p-button-secondary"
+                          incrementButtonClassName="p-button-secondary"
+                          incrementButtonIcon="pi pi-plus"
+                          decrementButtonIcon="pi pi-minus"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex flex-row flex-wrap gap-3">
-                  <div className="flex align-items-center justify-content-center ">
+                  <div className="flex flex-row gap-3">
                     <Button
                       label="Update CTOT"
                       icon="pi pi-clock"
                       onClick={updateCtot}
                       loading={submitting}
+                    />
+
+                    <Button
+                      label="Reset CDM Times"
+                      icon="pi pi-trash"
+                      className="p-button-danger"
+                      onClick={resetCdmTimes}
+                      loading={submitting}
+                      tooltip="Resets CTOT, TTOT, TSAT, ASRT, ASAT and AOBT"
                     />
                   </div>
                 </div>
