@@ -16,6 +16,7 @@ interface Pilot {
 
     tsat: Date;
 
+    atot: Date;
     ctot: Date;
     ttot: Date;
 

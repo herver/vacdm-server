@@ -1,6 +1,7 @@
 import mongoose, { HydratedDocument } from 'mongoose';
 import timeUtils from '../utils/time.utils';
 import Pilot from '@shared/interfaces/pilot.interface';
+import { time } from 'console';
 
 export type PilotDocument = HydratedDocument<Pilot>;
 
@@ -27,6 +28,7 @@ export const pilotSchema = new mongoose.Schema(
 
       tsat: { type: Date, default: timeUtils.emptyDate },
 
+      atot: { type: Date, default: timeUtils.emptyDate },
       ctot: { type: Date, default: timeUtils.emptyDate },
       ttot: { type: Date, default: timeUtils.emptyDate },
 
