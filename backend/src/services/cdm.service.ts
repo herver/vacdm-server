@@ -135,15 +135,63 @@ export async function putPilotIntoBlock(
   return await putPilotIntoBlock(pilot, allPilots);
 }
 
+// Add this helper function after the imports, before determineInitialBlock
+
+async function calculatePositionBasedTTOT(pilot: PilotDocument, allPilots: PilotDocument[]): Promise<Date> {
+  // Get pilots in the same block on the same runway
+  const pilotsInSameBlock = allPilots.filter(
+    (plt) =>
+      plt.flightplan.departure === pilot.flightplan.departure &&
+      plt.vacdm.block_rwy_designator === pilot.vacdm.block_rwy_designator &&
+      plt.vacdm.blockId === pilot.vacdm.blockId &&
+      plt._id.toString() !== pilot._id.toString() &&
+      !plt.inactive
+  );
+
+  // Get runway capacity
+  const cap: AirportCapacity = await airportService.getCapacity(
+    pilot.flightplan.departure,
+    pilot.vacdm.block_rwy_designator
+  );
+
+  // Calculate this pilot's position in the block (0-based)
+  const position = pilotsInSameBlock.length;
+
+  // Get block start time
+  const blockStartTime = blockUtils.getTimeFromBlock(pilot.vacdm.blockId);
+
+  // Calculate increment: (position * 600 seconds) / capacity
+  const incrementSeconds = Math.floor((position * 600) / cap.capacity);
+  
+  // Apply increment to block start time
+  const ttot = new Date(blockStartTime);
+  ttot.setSeconds(ttot.getSeconds() + incrementSeconds);
+
+  // Ensure TTOT doesn't exceed block end (start + 10 minutes)
+  const blockEndTime = new Date(blockStartTime);
+  blockEndTime.setMinutes(blockEndTime.getMinutes() + 10);
+  
+  if (ttot > blockEndTime) {
+    // Cap at block end minus 30 seconds
+    ttot.setTime(blockEndTime.getTime() - 30000);
+  }
+
+  return ttot;
+}
+
 async function setTime(pilot: PilotDocument): Promise<{
   finalBlock: number;
   finalTtot: Date;
 }> {
+  // Get all pilots for position calculation
+  const allPilots = await pilotService.getAllPilots({ inactive: { $eq: false } });
+
   if (
     pilot.vacdm.tsat > pilot.vacdm.tobt ||
     blockUtils.getBlockFromTime(pilot.vacdm.ttot) != pilot.vacdm.blockId
   ) {
-    pilot.vacdm.ttot = blockUtils.getTimeFromBlock(pilot.vacdm.blockId);
+    // Use position-based TTOT calculation instead of just block start time
+    pilot.vacdm.ttot = await calculatePositionBasedTTOT(pilot, allPilots);
     pilot.vacdm.tsat = timeUtils.addMinutes(
       pilot.vacdm.ttot,
       -pilot.vacdm.exot
@@ -155,6 +203,7 @@ async function setTime(pilot: PilotDocument): Promise<{
     pilot.vacdm.ttot = timeUtils.addMinutes(pilot.vacdm.tsat, pilot.vacdm.exot);
   }
 
+  // CTOT override logic
   if (!timeUtils.isTimeEmpty(pilot.vacdm.ctot)) {
     pilot.vacdm.blockId = blockUtils.getBlockFromTime(pilot.vacdm.ctot);
     pilot.vacdm.ttot = pilot.vacdm.ctot;
