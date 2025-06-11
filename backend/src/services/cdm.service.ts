@@ -135,6 +135,62 @@ export async function putPilotIntoBlock(
   return await putPilotIntoBlock(pilot, allPilots);
 }
 
+async function calculateWaveEffectTTOT(
+  pilot: PilotDocument,
+  allPilots: PilotDocument[]
+): Promise<Date> {
+  // Get pilots in the same block on the same runway, sorted by block assignment time
+  const pilotsInSameBlock = allPilots
+    .filter(
+      (plt) =>
+        plt.flightplan.departure === pilot.flightplan.departure &&
+        plt.vacdm.block_rwy_designator === pilot.vacdm.block_rwy_designator &&
+        plt.vacdm.blockId === pilot.vacdm.blockId &&
+        plt._id.toString() !== pilot._id.toString() &&
+        !plt.inactive
+    )
+    .sort((a, b) => a.vacdm.blockAssignment.getTime() - b.vacdm.blockAssignment.getTime());
+
+  // Get runway capacity
+  const cap: AirportCapacity = await airportService.getCapacity(
+    pilot.flightplan.departure,
+    pilot.vacdm.block_rwy_designator
+  );
+
+  // Calculate this pilot's position in the block (0-based)
+  // Position is determined by block assignment time - pilots assigned earlier get earlier slots
+  let position = 0;
+  for (const otherPilot of pilotsInSameBlock) {
+    if (pilot.vacdm.blockAssignment.getTime() > otherPilot.vacdm.blockAssignment.getTime()) {
+      position++;
+    }
+  }
+
+  // Get block start time
+  const blockStartTime = blockUtils.getTimeFromBlock(pilot.vacdm.blockId);
+
+  // Calculate time increment within the 10-minute block
+  // Distribute pilots evenly across the block based on capacity
+  const blockDurationSeconds = 600; // 10 minutes
+  const timeSlotDuration = Math.floor(blockDurationSeconds / cap.capacity);
+  const incrementSeconds = position * timeSlotDuration;
+
+  // Apply increment to block start time
+  const ttot = new Date(blockStartTime);
+  ttot.setSeconds(ttot.getSeconds() + incrementSeconds);
+
+  // Ensure TTOT doesn't exceed block end minus 30 seconds buffer
+  const blockEndTime = new Date(blockStartTime);
+  blockEndTime.setMinutes(blockEndTime.getMinutes() + 10);
+  blockEndTime.setSeconds(blockEndTime.getSeconds() - 30);
+  
+  if (ttot > blockEndTime) {
+    return blockEndTime;
+  }
+
+  return ttot;
+}
+
 async function setTime(pilot: PilotDocument): Promise<{
   finalBlock: number;
   finalTtot: Date;
@@ -143,7 +199,11 @@ async function setTime(pilot: PilotDocument): Promise<{
     pilot.vacdm.tsat > pilot.vacdm.tobt ||
     blockUtils.getBlockFromTime(pilot.vacdm.ttot) != pilot.vacdm.blockId
   ) {
-    pilot.vacdm.ttot = blockUtils.getTimeFromBlock(pilot.vacdm.blockId);
+    // Get all pilots for wave effect calculation
+    const allPilots = await pilotService.getAllPilots({ inactive: { $eq: false } });
+    
+    // Use wave effect calculation to distribute pilots within the block
+    pilot.vacdm.ttot = await calculateWaveEffectTTOT(pilot, allPilots);
     pilot.vacdm.tsat = timeUtils.addMinutes(
       pilot.vacdm.ttot,
       -pilot.vacdm.exot
@@ -487,13 +547,33 @@ export async function optimizeBlockAssignments() {
 
         // move pilots to current block
 
+        const affectedBlocks = new Set<number>();
+        
         for (const pilot of pilotsToMove) {
+          // Track affected blocks for wave effect recalculation
+          affectedBlocks.add(pilot.vacdm.blockId); // source block
+          affectedBlocks.add(firstBlockId); // destination block
+          
           pilot.vacdm.delay -= (144 + pilot.vacdm.blockId - firstBlockId) % 144;
           pilot.vacdm.blockId = firstBlockId;
 
           logger.info("==========>> setting pilot times", pilot.callsign);
 
           await setTime(pilot);
+        }
+        
+        // Recalculate wave effect for all pilots in affected blocks
+        for (const blockId of affectedBlocks) {
+          const pilotsInAffectedBlock = pilotsThisRwy.filter(
+            (pilot) => pilot.vacdm.blockId === blockId
+          );
+          
+          for (const pilot of pilotsInAffectedBlock) {
+            if (!pilotsToMove.includes(pilot)) {
+              // Recalculate times for pilots that weren't moved but are in affected blocks
+              await setTime(pilot);
+            }
+          }
         }
       }
     }
