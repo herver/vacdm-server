@@ -135,6 +135,39 @@ export async function putPilotIntoBlock(
   return await putPilotIntoBlock(pilot, allPilots);
 }
 
+async function findNextAvailableBlock(
+  currentBlockId: number,
+  pilot: PilotDocument,
+  allPilots: PilotDocument[]
+): Promise<number | null> {
+  const capacityThisRunway: AirportCapacity = await airportService.getCapacity(
+    pilot.flightplan.departure,
+    pilot.vacdm.block_rwy_designator
+  );
+
+  // Search up to MAX_BLOCKS_TO_CHECK blocks ahead
+  for (let i = 1; i <= MAX_BLOCKS_TO_CHECK; i++) {
+    const blockId = (currentBlockId + i) % 144;
+    
+    // Count pilots in this potential block
+    const pilotsInBlock = allPilots.filter(
+      (plt) =>
+        plt.flightplan.departure === pilot.flightplan.departure &&
+        plt.vacdm.block_rwy_designator === pilot.vacdm.block_rwy_designator &&
+        plt.vacdm.blockId === blockId &&
+        !plt.inactive
+    ).length;
+
+    // Check if there's available capacity
+    if (pilotsInBlock < capacityThisRunway.capacity) {
+      return blockId;
+    }
+  }
+
+  // No available block found
+  return null;
+}
+
 async function calculateWaveEffectTTOT(
   pilot: PilotDocument,
   allPilots: PilotDocument[]
@@ -156,6 +189,35 @@ async function calculateWaveEffectTTOT(
     pilot.flightplan.departure,
     pilot.vacdm.block_rwy_designator
   );
+
+  // Check for capacity overflow (include current pilot in count)
+  const totalPilotsInBlock = pilotsInSameBlock.length + 1;
+  if (totalPilotsInBlock > cap.capacity) {
+    logger.warn(`Block capacity overflow detected for ${pilot.callsign}: ${totalPilotsInBlock} pilots > ${cap.capacity} capacity in block ${pilot.vacdm.blockId}`);
+    
+    // Find next available block
+    const nextAvailableBlock = await findNextAvailableBlock(
+      pilot.vacdm.blockId,
+      pilot,
+      allPilots
+    );
+    
+    if (nextAvailableBlock !== null) {
+      logger.info(`Moving ${pilot.callsign} from block ${pilot.vacdm.blockId} to block ${nextAvailableBlock} due to capacity overflow`);
+      
+      // Update pilot's block assignment
+      const oldBlockId = pilot.vacdm.blockId;
+      pilot.vacdm.blockId = nextAvailableBlock;
+      pilot.vacdm.delay += (nextAvailableBlock - oldBlockId + 144) % 144;
+      pilot.vacdm.blockAssignment = new Date();
+      
+      // Recursively calculate TTOT for new block
+      return await calculateWaveEffectTTOT(pilot, allPilots);
+    } else {
+      logger.error(`No available block found for ${pilot.callsign}, keeping in current block ${pilot.vacdm.blockId} with capacity overflow`);
+      // Continue with current block but log the overflow
+    }
+  }
 
   // Calculate this pilot's position in the block (0-based)
   // Position is determined by block assignment time - pilots assigned earlier get earlier slots
