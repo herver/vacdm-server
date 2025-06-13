@@ -24,7 +24,6 @@ const ASRT_PRIO_BONUS = 5;
 // Helper function to check if pilot is still in planning phase (can be optimized)
 function isPilotOptimizable(pilot: PilotDocument): boolean {
   return (
-    timeUtils.isTimeEmpty(pilot.vacdm.asrt) && // No startup request
     timeUtils.isTimeEmpty(pilot.vacdm.aort) && // No off-block request  
     timeUtils.isTimeEmpty(pilot.vacdm.asat) && // No startup approval
     timeUtils.isTimeEmpty(pilot.vacdm.aobt) && // Not off-block
