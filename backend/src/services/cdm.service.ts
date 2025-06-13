@@ -21,6 +21,17 @@ const MAX_BLOCKS_TO_CHECK = 60;
 const MAX_BLOCKS_TO_LOOK_AHEAD = 7;
 const ASRT_PRIO_BONUS = 5;
 
+// Helper function to check if pilot is still in planning phase (can be optimized)
+function isPilotOptimizable(pilot: PilotDocument): boolean {
+  return (
+    timeUtils.isTimeEmpty(pilot.vacdm.asrt) && // No startup request
+    timeUtils.isTimeEmpty(pilot.vacdm.aort) && // No off-block request  
+    timeUtils.isTimeEmpty(pilot.vacdm.asat) && // No startup approval
+    timeUtils.isTimeEmpty(pilot.vacdm.aobt) && // Not off-block
+    timeUtils.isTimeEmpty(pilot.vacdm.atot)    // Not taken off
+  );
+}
+
 export function determineInitialBlock(pilot: PilotDocument): {
   initialBlock: number;
   initialTtot: Date;
@@ -576,6 +587,8 @@ export async function optimizeBlockAssignments() {
 
         // TODO: for the future, we need to create a score on the relevance of each pilot in this array
         const sortedMovablePilots: PilotDocument[] = [];
+        let totalPilotsConsidered = 0;
+        let totalPilotsExcluded = 0;
 
         // sort pilots for block, prio, delay
         for (
@@ -585,19 +598,27 @@ export async function optimizeBlockAssignments() {
         ) {
           let otherBlockId = (firstBlockId + secondBlockCounter) % 144;
 
-          const sortedMovablePilotsThisBlock = pilotsThisRwy
+          const pilotsInOtherBlock = pilotsThisRwy.filter(
+            (pilot) => pilot.vacdm.blockId == otherBlockId
+          );
+          totalPilotsConsidered += pilotsInOtherBlock.length;
+
+          const sortedMovablePilotsThisBlock = pilotsInOtherBlock
             .filter(
               (pilot) =>
-                pilot.vacdm.blockId == otherBlockId &&
                 // pilot.vacdm.tsat > nowPlusTen && // was removed after short discussion with Phil, will be removed for now
-                pilot.vacdm.delay >= secondBlockCounter
-            )
-            .sort(
-              (pilotA, pilotB) =>
-                pilotA.vacdm.prio +
-                pilotA.vacdm.delay -
-                (pilotB.vacdm.prio + pilotB.vacdm.delay)
+                pilot.vacdm.delay >= secondBlockCounter &&
+                isPilotOptimizable(pilot) // Only optimize pilots still in planning phase
             );
+
+          totalPilotsExcluded += pilotsInOtherBlock.length - sortedMovablePilotsThisBlock.length;
+
+          sortedMovablePilotsThisBlock.sort(
+            (pilotA, pilotB) =>
+              pilotA.vacdm.prio +
+              pilotA.vacdm.delay -
+              (pilotB.vacdm.prio + pilotB.vacdm.delay)
+          );
 
           sortedMovablePilots.push(...sortedMovablePilotsThisBlock);
         }
@@ -606,6 +627,11 @@ export async function optimizeBlockAssignments() {
           0,
           capacityThisRunway.capacity - pilotsInThisBlock
         );
+
+        // Log optimization effectiveness
+        if (totalPilotsConsidered > 0) {
+          logger.info(`Block ${firstBlockId} optimization: ${totalPilotsExcluded}/${totalPilotsConsidered} pilots excluded (already in departure phase), ${pilotsToMove.length} pilots to move`);
+        }
 
         // move pilots to current block
 
@@ -619,7 +645,7 @@ export async function optimizeBlockAssignments() {
           pilot.vacdm.delay -= (144 + pilot.vacdm.blockId - firstBlockId) % 144;
           pilot.vacdm.blockId = firstBlockId;
 
-          logger.info("==========>> setting pilot times", pilot.callsign);
+          logger.debug("==========>> setting pilot times", pilot.callsign);
 
           await setTime(pilot);
         }
