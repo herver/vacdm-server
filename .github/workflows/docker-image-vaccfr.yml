@@ -3,6 +3,8 @@ name: Docker Image CI
 on:
   push:
     branches: [ "vaccfr" ]
+    tags:
+      - '*'
 
 env:
   REGISTRY: ghcr.io
@@ -29,5 +31,11 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          docker build --pull -t ${{ env.REGISTRY }}/herver/vacdm:vaccfr .
-          docker push ${{ env.REGISTRY }}/herver/vacdm:vaccfr
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG_NAME=${GITHUB_REF#refs/tags/}
+            docker build --pull -t ${{ env.REGISTRY }}/herver/vacdm:${TAG_NAME} .
+            docker push ${{ env.REGISTRY }}/herver/vacdm:${TAG_NAME}
+          else
+            docker build --pull -t ${{ env.REGISTRY }}/herver/vacdm:vaccfr .
+            docker push ${{ env.REGISTRY }}/herver/vacdm:vaccfr
+          fi
