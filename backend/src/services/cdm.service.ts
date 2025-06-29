@@ -370,7 +370,7 @@ export async function cleanupPilots() {
   const pilotsToBeDeactivated = await pilotModel
     .find({
       inactive: { $not: { $eq: true } },
-      tobt_state: { $eq: "GUESS" },
+      "vacdm.tobt_state": { $eq: "GUESS" },
       $or: [
         {
           updatedAt: {
