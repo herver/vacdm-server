@@ -1,5 +1,3 @@
-version: '2.4'
-
 services:
   api:
     build:
@@ -9,7 +7,7 @@ services:
       args:
         - NODE_ENV=development
     ports:
-      - '3030:3000/tcp'
+      - '3000:3000/tcp'
       - '9229:9229/tcp'
     volumes:
       - .:/opt:delegated
@@ -38,3 +36,15 @@ services:
     environment:
       - MONGO_URI
       - ROLE=WORKER
+  ferretdb:
+    image: ghcr.io/ferretdb/ferretdb-eval:latest
+    ports:
+      - '27017:27017/tcp'
+    volumes:
+      - ferretdb_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=vacdm
+      - POSTGRES_PASSWORD=vacdm
+
+volumes:
+  ferretdb_data:
