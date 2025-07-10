@@ -69,6 +69,9 @@ const DepartureBlocks = () => {
       blockUtils.getTimeFromBlock(blockNumberFromTime),
       blockUtils.getTimeFromBlock(blockNumberFromTime + 1),
       blockUtils.getTimeFromBlock(blockNumberFromTime + 2),
+      blockUtils.getTimeFromBlock(blockNumberFromTime + 3),
+      blockUtils.getTimeFromBlock(blockNumberFromTime + 4),
+      blockUtils.getTimeFromBlock(blockNumberFromTime + 5),
     ];
   }
 
