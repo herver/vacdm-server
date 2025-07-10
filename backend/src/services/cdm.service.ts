@@ -628,11 +628,10 @@ export async function optimizeBlockAssignments() {
 
         // Log optimization effectiveness
         if (totalPilotsConsidered > 0) {
-          logger.info(`Block ${firstBlockId} optimization: ${totalPilotsExcluded}/${totalPilotsConsidered} pilots excluded (already in departure phase), ${pilotsToMove.length} pilots to move`);
+          logger.info(`RWY ${thisRunwayDesignator} Block ${firstBlockId} optimization: ${totalPilotsExcluded}/${totalPilotsConsidered} pilots excluded (already in departure phase), ${pilotsToMove.length} pilots to move`);
         }
 
         // move pilots to current block
-
         const affectedBlocks = new Set<number>();
         
         for (const pilot of pilotsToMove) {
