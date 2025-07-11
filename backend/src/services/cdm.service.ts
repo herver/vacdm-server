@@ -17,6 +17,7 @@ const logger = new Logger("vACDM:services:cdm");
 // Add constants at the top of the file
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
 const TEN_MINUTES_MS = 10 * 60 * 1000;
+const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
 const MAX_BLOCKS_TO_CHECK = 60;
 const MAX_BLOCKS_TO_LOOK_AHEAD = 7;
 const ASRT_PRIO_BONUS = 5;
@@ -451,6 +452,69 @@ export async function cleanupPilots() {
 
     await pilot.save();
   }
+
+  // Deactivate CONFIRMED pilots with AOBT older than 10 minutes ago)
+  const pilotsConfirmedWithOldAobt = await pilotModel
+    .find({
+      inactive: { $not: { $eq: true } },
+      "vacdm.tobt_state": { $eq: "CONFIRMED" },
+      "vacdm.aobt": {
+        $not: { $eq: emptyDate },
+        $lt: new Date(Date.now() - TEN_MINUTES_MS),
+      },
+    })
+    .exec();
+
+  logger.debug(
+    "pilotsConfirmedWithOldAobt",
+    pilotsConfirmedWithOldAobt
+  );
+
+  for (let pilot of pilotsConfirmedWithOldAobt) {
+    logger.debug(`Deactivating confirmed pilot ${pilot.callsign} with old AOBT (${pilot.vacdm.aobt})`);
+    pilot.inactive = true;
+    pilot.disabledAt = new Date();
+
+    await pilotService.addLog({
+      pilot: pilot.callsign,
+      namespace: "worker",
+      action: "deactivated confirmed pilot with old aobt",
+      data: {
+        updated: pilot.updatedAt,
+        aobt: pilot.vacdm.aobt,
+      },
+    });
+
+    logger.debug("deactivating confirmed pilot with old aobt", pilot.callsign);
+
+    await pilot.save();
+  }
+
+  // Fallback: delete pilots not updated in 8 hours (regardless of state)
+  const pilotsNotUpdatedIn8Hours = await pilotModel
+    .find({
+      updatedAt: {
+        $lt: new Date(Date.now() - EIGHT_HOURS_MS),
+      },
+    })
+    .exec();
+
+  logger.debug("pilotsNotUpdatedIn8Hours", pilotsNotUpdatedIn8Hours);
+
+  for (let pilot of pilotsNotUpdatedIn8Hours) {
+    await pilotService.addLog({
+      pilot: pilot.callsign,
+      namespace: "worker",
+      action: "deleted pilot not updated in 8 hours",
+      data: {
+        updated: pilot.updatedAt,
+      },
+    });
+
+    logger.debug(`Deleting pilot ${pilot.callsign} - not updated in 8 hours (last update: ${pilot.updatedAt})`);
+    
+    pilotService.deletePilot(pilot.callsign);
+  }
 }
 
 export async function optimizeBlockAssignments() {
@@ -628,7 +692,7 @@ export async function optimizeBlockAssignments() {
 
         // Log optimization effectiveness
         if (totalPilotsConsidered > 0) {
-          logger.info(`RWY ${thisRunwayDesignator} Block ${firstBlockId} optimization: ${totalPilotsExcluded}/${totalPilotsConsidered} pilots excluded (already in departure phase), ${pilotsToMove.length} pilots to move`);
+          logger.info(`${thisRunwayDesignator}@${airport.icao} Block ${firstBlockId} optimization: ${totalPilotsExcluded}/${totalPilotsConsidered} pilots excluded (already in departure phase), ${pilotsToMove.length} pilots to move`);
         }
 
         // move pilots to current block
