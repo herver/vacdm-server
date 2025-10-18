@@ -89,15 +89,22 @@ export async function putPilotIntoBlock(
           plt.callsign != pilot.callsign
       );
       if (pilotsWithSameMeasures.length > 0) {
+        const mdiMinutes = Math.ceil(measure.value / 60);
+
         for (const smp of pilotsWithSameMeasures) {
-          if (
-            dayjs(smp.vacdm.ttot).diff(pilot.vacdm.ttot, "minute") <
-            Math.ceil(measure.value / 60)
-          ) {
-            pilot.vacdm.ctot = timeUtils.addMinutes(
-              smp.vacdm.ttot,
-              Math.ceil(measure.value / 60)
-            );
+          // Only check pilots scheduled BEFORE the current pilot
+          if (smp.vacdm.ttot < pilot.vacdm.ttot) {
+            const timeDiffMinutes = dayjs(pilot.vacdm.ttot).diff(smp.vacdm.ttot, "minute");
+
+            // If spacing is less than required MDI, push current pilot's CTOT forward
+            if (timeDiffMinutes < mdiMinutes) {
+              const requiredCtot = timeUtils.addMinutes(smp.vacdm.ttot, mdiMinutes);
+
+              // Use the latest required CTOT if multiple measures apply
+              if (timeUtils.isTimeEmpty(pilot.vacdm.ctot) || requiredCtot > pilot.vacdm.ctot) {
+                pilot.vacdm.ctot = requiredCtot;
+              }
+            }
           }
         }
       }
