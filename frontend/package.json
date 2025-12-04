@@ -27,6 +27,14 @@
     "watch": "^1.0.2",
     "web-vitals": "^2.1.4"
   },
+  "overrides": {
+    "react-scripts": {
+      "form-data": "^3.0.4"
+    },
+    "axios": {
+      "form-data": "^4.0.4"
+    }
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",

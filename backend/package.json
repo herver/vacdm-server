@@ -38,6 +38,11 @@
     "mongoose": "^6.5.0",
     "point-in-polygon": "^1.1.0"
   },
+  "overrides": {
+    "axios": {
+      "form-data": "^4.0.4"
+    }
+  },
   "_moduleAliases": {
     "@shared": "dist/shared/src"
   }
