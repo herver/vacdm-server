@@ -86,6 +86,7 @@ export async function authUser(code: string): Promise<string> {
       },
       config().jwtSecret,
       {
+        algorithm: "HS256",
         expiresIn: "1h",
       }
     );
@@ -113,7 +114,9 @@ export async function authUser(code: string): Promise<string> {
 
 export async function getUserFromToken(token: string): Promise<UserDocument> {
   try {
-    const tokendata = jwt.verify(token, config().jwtSecret, {});
+    const tokendata = jwt.verify(token, config().jwtSecret, {
+      algorithms: ["HS256"],
+    });
 
     if (typeof tokendata == "string") {
       logger.error("BIG WTF -", tokendata);
