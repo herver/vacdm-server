@@ -6,6 +6,8 @@
     "module": "commonjs",
     "target": "es2015",
     "lib": ["es2017"],
+    "types": ["node"],
+    "skipLibCheck": true,
     "sourceMap": true,
     "strictNullChecks": true,
     "noImplicitAny": false,
