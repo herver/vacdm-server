@@ -6,6 +6,7 @@ import {
   useEffect,
 } from "react";
 import authService from "services/AuthService";
+import DatafeedService from "services/DatafeedService";
 
 import { useNavigate } from "react-router-dom";
 
@@ -22,8 +23,20 @@ export const AuthProvider = ({ children }: { children: any }) => {
   useEffect(() => {
     authService
       .getProfile()
-      .then((data) => {
+      .then(async (data) => {
         setAuth({ user: data });
+
+        // Redirect ATCs to /atc, unless they're also flying as a pilot
+        if (data.vacdm?.atc && !data.vacdm?.banned) {
+          try {
+            // Check if user is currently flying
+            await DatafeedService.getPilotFromCid(data.apidata.cid);
+            // User is flying - stay on VDGS (no redirect)
+          } catch (e) {
+            // User is not flying - redirect to ATC view
+            navigate("/atc");
+          }
+        }
       })
       .catch((e) => {
         setAuth({});
