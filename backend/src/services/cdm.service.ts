@@ -31,6 +31,17 @@ function isPilotOptimizable(pilot: PilotDocument): boolean {
   );
 }
 
+/**
+ * Gets the effective departure time for MDI calculations.
+ * Uses CTOT if set, otherwise falls back to TTOT.
+ */
+function getEffectiveDepartureTime(pilot: PilotDocument): Date {
+  if (!timeUtils.isTimeEmpty(pilot.vacdm.ctot)) {
+    return pilot.vacdm.ctot;
+  }
+  return pilot.vacdm.ttot;
+}
+
 export function determineInitialBlock(pilot: PilotDocument): {
   initialBlock: number;
   initialTtot: Date;
@@ -92,13 +103,18 @@ export async function putPilotIntoBlock(
         const mdiMinutes = Math.ceil(measure.value / 60);
 
         for (const smp of pilotsWithSameMeasures) {
+          // Get effective departure times (CTOT if set, otherwise TTOT)
+          const smpEffectiveTime = getEffectiveDepartureTime(smp);
+          // Recalculate each iteration since pilot.vacdm.ctot may have been updated
+          const pilotEffectiveTime = getEffectiveDepartureTime(pilot);
+
           // Only check pilots scheduled BEFORE the current pilot
-          if (smp.vacdm.ttot < pilot.vacdm.ttot) {
-            const timeDiffMinutes = dayjs(pilot.vacdm.ttot).diff(smp.vacdm.ttot, "minute");
+          if (smpEffectiveTime < pilotEffectiveTime) {
+            const timeDiffMinutes = dayjs(pilotEffectiveTime).diff(smpEffectiveTime, "minute");
 
             // If spacing is less than required MDI, push current pilot's CTOT forward
             if (timeDiffMinutes < mdiMinutes) {
-              const requiredCtot = timeUtils.addMinutes(smp.vacdm.ttot, mdiMinutes);
+              const requiredCtot = timeUtils.addMinutes(smpEffectiveTime, mdiMinutes);
 
               // Use the latest required CTOT if multiple measures apply
               if (timeUtils.isTimeEmpty(pilot.vacdm.ctot) || requiredCtot > pilot.vacdm.ctot) {
